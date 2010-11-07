@@ -46,7 +46,7 @@ namespace gamesrv
 			
 			//message has successfully been received
 			ASCIIEncoding encoder = new ASCIIEncoding();
-			Console.WriteLine(encoder.GetString(message, 0, bytesRead));
+			Console.WriteLine(encoder.GetString(message, 0, bytesRead).Trim());
 			}
 			
 			tcpClient.Close();
