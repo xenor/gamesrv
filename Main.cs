@@ -16,23 +16,28 @@ namespace gamesrv
 		public static object[] users = new object[4096];
 		public static int user_count = 0;
 		
-		private static void HandleClientComm(object client)
+		public void writeToStream(NetworkStream stream, string text)
+		{	
+			Console.WriteLine("TEXT: " + text);
+			byte[] buffer = new byte[text.Length];
+			buffer = encoder.GetBytes(text.ToString());
+			stream.Write(buffer, 0, buffer.Length);
+		}
+		
+		public void HandleClientComm(object client)
 		{
 			TcpClient tcpClient = (TcpClient)client;
 			NetworkStream clientStream = tcpClient.GetStream();
 			users[user_count] = client;
 			user_count++;
 			
-			byte[] buffer = new byte[128];
-			buffer = encoder.GetBytes(user_count.ToString());
-			clientStream.Write(buffer, 0, buffer.Length);
+			this.writeToStream(clientStream,"lolwas");
 			
 			byte[] message = new byte[4096];
 			int bytesRead;
 			
 			while (true)
 			{
-				#region shit
 				bytesRead = 0;
 				
 				try
@@ -54,9 +59,12 @@ namespace gamesrv
 			
 				//message has successfully been received
 				string str = encoder.GetString(message, 0, bytesRead).Trim();
-				Console.WriteLine("incoming string from " + client.ToString() + ": " + str);
-				#endregion
-				
+				Console.WriteLine("Incoming string from " + client.ToString() + ": " + str);
+				if (str == "QUIT")
+				{
+					this.writeToStream(clientStream,"Bye =)");
+					tcpClient.Close();
+				}
 			}
 			
 			tcpClient.Close();
@@ -64,7 +72,7 @@ namespace gamesrv
 		
 		#region acceptshit
 		
-		private static void ListenForClients()
+		public void ListenForClients()
 		{
 			tcpListener.Start();
 			
