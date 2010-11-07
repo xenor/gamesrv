@@ -12,26 +12,25 @@ namespace gamesrv
 		public static string version;
 		public static TcpListener tcpListener;
 		public static Thread listenThread;
-		public static UTF8Encoding encoder = new UTF8Encoding();
+		public static ASCIIEncoding encoder = new ASCIIEncoding();
 		public static object[] users = new object[4096];
 		public static int user_count = 0;
 		
-		public void writeToStream(NetworkStream stream, string text)
+		public static void writeToStream(NetworkStream stream, string text)
 		{	
-			Console.WriteLine("TEXT: " + text);
 			byte[] buffer = new byte[text.Length];
 			buffer = encoder.GetBytes(text.ToString());
 			stream.Write(buffer, 0, buffer.Length);
 		}
 		
-		public void HandleClientComm(object client)
+		public static void HandleClientComm(object client)
 		{
 			TcpClient tcpClient = (TcpClient)client;
 			NetworkStream clientStream = tcpClient.GetStream();
 			users[user_count] = client;
 			user_count++;
 			
-			this.writeToStream(clientStream,"lolwas");
+			writeToStream(clientStream,"WELCOME");
 			
 			byte[] message = new byte[4096];
 			int bytesRead;
@@ -62,7 +61,7 @@ namespace gamesrv
 				Console.WriteLine("Incoming string from " + client.ToString() + ": " + str);
 				if (str == "QUIT")
 				{
-					this.writeToStream(clientStream,"Bye =)");
+					writeToStream(clientStream,"Bye =)");
 					tcpClient.Close();
 				}
 			}
@@ -72,7 +71,7 @@ namespace gamesrv
 		
 		#region acceptshit
 		
-		public void ListenForClients()
+		public static void ListenForClients()
 		{
 			tcpListener.Start();
 			
@@ -98,4 +97,3 @@ namespace gamesrv
 		#endregion
 	}
 }
-
