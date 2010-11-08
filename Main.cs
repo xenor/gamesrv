@@ -104,7 +104,7 @@ namespace gamesrv
 					Console.WriteLine("str2: " + str2);
 					foreach(user user in allusers)
 					{
-						if(user.stream != null)
+						if(user != null && user.stream != null)
 						{
     						writeToStream(user.stream,str2);
 						}
