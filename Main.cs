@@ -3,6 +3,8 @@ using System.Text;
 using System.Net.Sockets;
 using System.Threading;
 using System.Net;
+using System.Data;
+using MySql.Data.MySqlClient;
 
 namespace gamesrv
 {
@@ -17,9 +19,22 @@ namespace gamesrv
 			this.user_id = user_id;
 			this.stream = stream;
 			long time = DateTime.Now.ToFileTime();
-			Console.WriteLine("User with ID " + user_id + " connected at " + time + ".");
+			Console.WriteLine("[ NEWUSER ] [ " + user_id + " ]: TIME: " + time);
 		}
 	}
+
+    public class config
+    {
+        public class mysql
+        {
+            public static string config = "SERVER=localhost;DATABASE=lunatic_3;UID=lunatic3;PASSWORD=OPFER;";
+        }
+        public class locale
+        {
+            public static string welcome = "WELCOME";
+            public static string bye = "BYE";
+        }
+    }
 	
 	class MainClass
 	{
@@ -28,17 +43,19 @@ namespace gamesrv
 		public static TcpListener tcpListener;
 		public static Thread listenThread;
 		public static ASCIIEncoding encoder = new ASCIIEncoding();
+        public static MySqlConnection SQL = new MySqlConnection(config.mysql.config);
+
 		public static NetworkStream[] users = new NetworkStream[4096];
 		public static int user_count = 0;
 		public static user[] allusers = new user[16];
 		
 		public static user findUserByStream(NetworkStream stream)
 		{
-			foreach(user user in allusers)
+			foreach(user cur_user in allusers)
 			{
-				if(user.stream == stream)
+                if (cur_user != null && cur_user.stream == stream)
 				{
-					return user;
+                    return cur_user;
 				}
 			}
 			return new user(0,null);
@@ -50,7 +67,16 @@ namespace gamesrv
 			{
 				byte[] buffer = new byte[text.Length];
 				buffer = encoder.GetBytes(text.ToString() + "\r\n");
-				stream.Write(buffer, 0, buffer.Length);
+                user thisuser = findUserByStream(stream);
+                try
+                {
+                    stream.Write(buffer, 0, buffer.Length);
+                    Console.WriteLine("[   >>>   ] [ " + thisuser.user_id + " ]: " + text);
+                }
+                catch
+                {
+                    Console.WriteLine("ERROR WHILE WRITING TO " + thisuser.user_id);
+                }
 			}
 		}
 		
@@ -63,7 +89,7 @@ namespace gamesrv
 			
 			allusers[user_count] = new user(0,clientStream);
 			
-			writeToStream(clientStream,"WELCOME");
+			writeToStream(clientStream,config.locale.welcome);
 			
 			byte[] message = new byte[4096];
 			int bytesRead;
@@ -91,26 +117,28 @@ namespace gamesrv
 			
 				//message has successfully been received
 				string str = encoder.GetString(message, 0, bytesRead).Trim();
-				Console.WriteLine("Incoming string from " + client.ToString() + ": " + str);
-				Console.WriteLine("SUBSTR:" + str.Substring(0,1));
-				if (str == "QUIT")
-				{
-					writeToStream(clientStream,"Bye =)");
-					tcpClient.Close();
-				}
-				else if (str.Substring(0,1) == "N")
-				{
-					string str2 = str.Substring(2);
-					Console.WriteLine("str2: " + str2);
-					foreach(user user in allusers)
-					{
-						if(user != null && user.stream != null)
-						{
-    						writeToStream(user.stream,str2);
-						}
-					}
-				}
-			}
+                user thisuser = findUserByStream(clientStream);
+				Console.WriteLine("[   <<<   ] [ " + thisuser.user_id + " ]: " + str);
+                string[] cmd = str.Split(' ');
+                cmd[0] = cmd[0].ToUpper();
+                if (cmd[0] == "QUIT")
+                {
+                    writeToStream(clientStream, config.locale.bye);
+                    tcpClient.Close();
+                }
+                else if (cmd[0] == "NOTICE")
+                {
+                    string str2 = str.Substring(7);
+                    Console.WriteLine("[ SPREAD  ] [ "+ thisuser.user_id + " ]: " + str2);
+                    foreach (user user in allusers)
+                    {
+                        if (user != null && user.stream != null)
+                        {
+                            writeToStream(user.stream, str2);
+                        }
+                    }
+                }
+            }
 			
 			tcpClient.Close();
 		}	
