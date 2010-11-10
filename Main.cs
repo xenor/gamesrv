@@ -19,6 +19,22 @@ namespace gamesrv
         public NetworkStream stream;
         public int lastpong = gamesrv.MainClass.unixtime();
         public int adminlevel = 0;
+
+        public void write(string str)
+        {
+            byte[] buffer = new byte[str.Length];
+            buffer = gamesrv.MainClass.encoder.GetBytes(str.ToString() + "\r\n");
+            try
+            {
+                this.stream.Write(buffer, 0, buffer.Length);
+                gamesrv.MainClass.say("[   >>>   ] [ " + this.user_id + " ]: " + str);
+            }
+            catch
+            {
+                Console.WriteLine("ERROR WHILE WRITING TO " + this.user_id);
+            }
+        }
+
         public user(int user_id, NetworkStream stream)
         {
             this.user_id = user_id;
@@ -26,9 +42,21 @@ namespace gamesrv
             int time = gamesrv.MainClass.unixtime();
             gamesrv.MainClass.say("[ NEWUSER ] [ " + user_id + " ]: TIME: " + time);
         }
-        public static void identify(string login, string passwd)
-        {
 
+        public void identAs(string login, string passwd)
+        {
+            if (this.user_id != 0)
+            {
+                this.write("LOGIN;ERROR;0");
+            }
+            else
+            {
+                /*DataSet data = new DataSet();
+                string sql = "SELECT * FROM account WHERE login = '" + login + "' AND passwd = '" + passwd + "'";
+                MySqlCommand command =  gamesrv.MainClass.SQL.CreateCommand();
+                MySqlDataReader reader = command.ExecuteReader();*/
+                this.write("LOGIN;OK");
+            }
         }
     }
 
@@ -89,6 +117,7 @@ namespace gamesrv
             public static string[] masternames = { "Anohros", "xenor" };
         }
         public static int pingtimeout = 0;
+        public static bool debug = true;
     }
     #endregion
 
@@ -169,6 +198,7 @@ namespace gamesrv
 
             while (true)
             {
+
                 #region read
                 bytesRead = 0;
                 try
@@ -195,11 +225,15 @@ namespace gamesrv
                 string[] cmd = str.Split(';');
                 cmd[0] = cmd[0].ToUpper();
                 #endregion
+
+                #region base (QUIT/NOTICE)
+
                 if (cmd[0] == "QUIT")
                 {
                     writeToStream(clientStream, config.locale.bye);
                     closeConn(thisuser);
                 }
+
                 else if (cmd[0] == "NOTICE")
                 {
                     string str2 = str.Substring(7);
@@ -212,15 +246,42 @@ namespace gamesrv
                         }
                     }
                 }
+
+                #endregion
+
+                #region ping/pong
+                else if (cmd[0] == "PING")
+                {
+                    writeToStream(thisuser.stream, "PONG");
+                }
                 else if (cmd[0] == "PONG")
                 {
                     thisuser.lastpong = unixtime();
                 }
+                #endregion
+
                 else if (cmd[0] == "LOGIN")
                 {
-                    string username = cmd[1];
-                    char[] pwlength = cmd[2].ToCharArray();
-                    string password = cmd[3];
+                    if (cmd.Length > 3)
+                    {
+                        string username = cmd[1];
+                        char[] pwlength = cmd[2].ToCharArray();
+                        string password = cmd[3];
+                        thisuser.identAs(username, password);
+                    }
+                    else
+                    {
+                        thisuser.write("LOGIN;ERROR;1");
+                    }
+                }
+
+                else if (config.debug == true)
+                {
+                    if (cmd[0] == "USER_ID")
+                    {
+                        thisuser.user_id = Convert.ToInt32(cmd[1]);
+                        writeToStream(thisuser.stream, "USER_ID;OK");
+                    }
                 }
             }
 
@@ -238,7 +299,6 @@ namespace gamesrv
         public static void ListenForClients()
         {
             tcpListener.Start();
-
             while (true)
             {
                 TcpClient client = tcpListener.AcceptTcpClient();
@@ -251,6 +311,12 @@ namespace gamesrv
         {
             version = config.info.version;
             Console.WriteLine("Game Server v" + version + " starting up...");
+            //account.Open();
+            say("ACCOUNT CONNECTED");
+            //player.Open();
+            say("PLAYER CONNECTED");
+            //game.Open();
+            say("GAME CONNECTED");
             tcpListener = new TcpListener(IPAddress.Any, 3000);
             listenThread = new Thread(new ThreadStart(ListenForClients));
             listenThread.Start();
@@ -264,4 +330,3 @@ namespace gamesrv
         #endregion
     }
 }
-
