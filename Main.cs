@@ -1,3 +1,4 @@
+#region includes
 using System;
 using System.Text;
 using System.Net.Sockets;
@@ -6,6 +7,7 @@ using System.Net;
 using System.Data;
 using System.Collections.Generic;
 using MySql.Data.MySqlClient;
+#endregion
 
 namespace gamesrv
 {
@@ -16,6 +18,7 @@ namespace gamesrv
         public int logintime;
         public NetworkStream stream;
         public int lastpong = gamesrv.MainClass.unixtime();
+        public int adminlevel = 0;
         public user(int user_id, NetworkStream stream)
         {
             this.user_id = user_id;
@@ -23,8 +26,13 @@ namespace gamesrv
             int time = gamesrv.MainClass.unixtime();
             gamesrv.MainClass.say("[ NEWUSER ] [ " + user_id + " ]: TIME: " + time);
         }
+        public static void identify(string login, string passwd)
+        {
+
+        }
     }
 
+    #region ping/pong
     public class pingbot
     {
         public static void start()
@@ -35,7 +43,7 @@ namespace gamesrv
                 int curtime = gamesrv.MainClass.unixtime();
                 try
                 {
-                    for (int i = 0; i < gamesrv.MainClass.allusers.Count; i++ )
+                    for (int i = 0; i < gamesrv.MainClass.allusers.Count; i++)
                     {
                         user thisuser = gamesrv.MainClass.allusers[i];
                         if (thisuser != null && thisuser.stream != null)
@@ -56,7 +64,9 @@ namespace gamesrv
             }
         }
     }
+    #endregion
 
+    #region config
     public class config
     {
         public class mysql
@@ -78,12 +88,13 @@ namespace gamesrv
                                                 + sub_version;
             public static string[] masternames = { "Anohros", "xenor" };
         }
-        public static int pingtimeout = 10000;
+        public static int pingtimeout = 0;
     }
+    #endregion
 
     class MainClass
     {
-
+        #region sinnlos
         public static string version;
         public static TcpListener tcpListener;
         public static Thread listenThread;
@@ -140,6 +151,8 @@ namespace gamesrv
             }
         }
 
+        #endregion
+
         public static void HandleClientComm(object client)
         {
             TcpClient tcpClient = (TcpClient)client;
@@ -156,8 +169,8 @@ namespace gamesrv
 
             while (true)
             {
+                #region read
                 bytesRead = 0;
-
                 try
                 {
                     //blocks until a client sends a message
@@ -181,10 +194,11 @@ namespace gamesrv
                 say("[   <<<   ] [ " + thisuser.user_id + " ]: " + str);
                 string[] cmd = str.Split(' ');
                 cmd[0] = cmd[0].ToUpper();
+                #endregion
                 if (cmd[0] == "QUIT")
                 {
                     writeToStream(clientStream, config.locale.bye);
-                    tcpClient.Close();
+                    closeConn(thisuser);
                 }
                 else if (cmd[0] == "NOTICE")
                 {
@@ -234,8 +248,11 @@ namespace gamesrv
             tcpListener = new TcpListener(IPAddress.Any, 3000);
             listenThread = new Thread(new ThreadStart(ListenForClients));
             listenThread.Start();
-            Thread ping_thread = new Thread(new System.Threading.ThreadStart(gamesrv.pingbot.start));
-            ping_thread.Start();
+            if (config.pingtimeout > 0)
+            {
+                Thread ping_thread = new Thread(new System.Threading.ThreadStart(gamesrv.pingbot.start));
+                ping_thread.Start();
+            }
         }
 
         #endregion
