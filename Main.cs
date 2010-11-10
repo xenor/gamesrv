@@ -192,7 +192,7 @@ namespace gamesrv
                 string str = encoder.GetString(message, 0, bytesRead).Trim();
                 user thisuser = findUserByStream(clientStream);
                 say("[   <<<   ] [ " + thisuser.user_id + " ]: " + str);
-                string[] cmd = str.Split(' ');
+                string[] cmd = str.Split(';');
                 cmd[0] = cmd[0].ToUpper();
                 #endregion
                 if (cmd[0] == "QUIT")
@@ -215,6 +215,12 @@ namespace gamesrv
                 else if (cmd[0] == "PONG")
                 {
                     thisuser.lastpong = unixtime();
+                }
+                else if (cmd[0] == "LOGIN")
+                {
+                    string username = cmd[1];
+                    char[] pwlength = cmd[2].ToCharArray();
+                    string password = cmd[3];
                 }
             }
 
