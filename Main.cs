@@ -19,6 +19,11 @@ namespace gamesrv
         public NetworkStream stream;
         public int lastpong = gamesrv.MainClass.unixtime();
         public int adminlevel = 0;
+        public class data_class
+        {
+            public string nick = "";
+        }
+        public data_class data = new data_class();
 
         public void write(string str)
         {
@@ -27,7 +32,7 @@ namespace gamesrv
             try
             {
                 this.stream.Write(buffer, 0, buffer.Length);
-                gamesrv.MainClass.say("[   >>>   ] [ " + this.user_id + " ]: " + str);
+                gamesrv.MainClass.say("[   >>>   ] [ " + this.user_id + " " + this.data.nick + " ]: " + str);
             }
             catch
             {
@@ -47,7 +52,7 @@ namespace gamesrv
         {
             if (this.user_id != 0)
             {
-                this.write("LOGIN;ERROR;0");
+                this.write("LOGIN;ERROR;10");
             }
             else
             {
@@ -99,7 +104,20 @@ namespace gamesrv
     {
         public class mysql
         {
-            public const string config = "SERVER=localhost;DATABASE=lunatic_3;UID=lunatic3;PASSWORD=OPFER;";
+            public class player
+            {
+                public const string config = "SERVER=192.168.56.101;" +
+                                                "DATABASE=gamesrv_player;" +
+                                                "UID=lunatic3;" +
+                                                "PASSWORD=lalaftw#!;";
+            }
+            public class game
+            {
+                public const string config = "SERVER=192.168.56.101;" +
+                                                "DATABASE=gamesrv_game;" +
+                                                "UID=lunatic3;" +
+                                                "PASSWORD=lalaftw#!;";
+            }
         }
         public class locale
         {
@@ -121,6 +139,40 @@ namespace gamesrv
     }
     #endregion
 
+    class sql
+    {
+        public class player
+        {
+            public static MySqlConnection c = new MySqlConnection(config.mysql.player.config);
+            public static MySqlDataReader select(string query)
+            {
+                MySqlCommand cmd = c.CreateCommand();
+                cmd.CommandText = query;
+                MySqlDataReader reader = cmd.ExecuteReader();
+                return reader;
+            }
+        }
+        public class game
+        {
+            public static MySqlConnection c = new MySqlConnection(config.mysql.game.config);
+            public static MySqlDataReader select(string query)
+            {
+                MySqlCommand cmd = c.CreateCommand();
+                cmd.CommandText = query;
+                MySqlDataReader reader = cmd.ExecuteReader();
+                return reader;
+            }
+        }
+    }
+
+    public class game
+    {
+        public class proto
+        {
+            public static List<string> ship = new List<string>();
+        }
+    }
+
     class MainClass
     {
         #region sinnlos
@@ -128,11 +180,10 @@ namespace gamesrv
         public static TcpListener tcpListener;
         public static Thread listenThread;
         public static ASCIIEncoding encoder = new ASCIIEncoding();
-        public static MySqlConnection SQL = new MySqlConnection(config.mysql.config);
+        public static sql db = new sql();
 
         public static NetworkStream[] users = new NetworkStream[4096];
         public static int user_count = 0;
-        //public static user[] allusers = new user[16];
         public static List<user> allusers = new List<user>();
 
         public static int unixtime()
@@ -171,7 +222,7 @@ namespace gamesrv
                 try
                 {
                     stream.Write(buffer, 0, buffer.Length);
-                    say("[   >>>   ] [ " + thisuser.user_id + " ]: " + text);
+                    gamesrv.MainClass.say("[   >>>   ] [ " + thisuser.user_id + " " + thisuser.data.nick + " ]: " + text);
                 }
                 catch
                 {
@@ -221,7 +272,8 @@ namespace gamesrv
                 //message has successfully been received
                 string str = encoder.GetString(message, 0, bytesRead).Trim();
                 user thisuser = findUserByStream(clientStream);
-                say("[   <<<   ] [ " + thisuser.user_id + " ]: " + str);
+                //say("[   <<<   ] [ " + thisuser.user_id + " ]: " + str);
+                say("[   <<<   ] [ " + thisuser.user_id + " " + thisuser.data.nick + " ]: " + str);
                 string[] cmd = str.Split(';');
                 cmd[0] = cmd[0].ToUpper();
                 #endregion
@@ -271,7 +323,25 @@ namespace gamesrv
                     }
                     else
                     {
-                        thisuser.write("LOGIN;ERROR;1");
+                        thisuser.write("LOGIN;ERROR;11");
+                    }
+                }
+
+                else if (cmd[0] == "MESSAGE")
+                {
+                    bool sent = false;
+                    foreach (user cuser in allusers)
+                    {
+                        if (cuser.data.nick == cmd[1])
+                        {
+                            string msg = str.Substring(9 + cmd[1].Length);
+                            cuser.write("MESSAGE;" + thisuser.data.nick + ";" + msg);
+                            sent = true;
+                        }
+                    }
+                    if (sent == false)
+                    {
+                        thisuser.write("MESSAGE;ERROR;30");
                     }
                 }
 
@@ -282,6 +352,21 @@ namespace gamesrv
                         thisuser.user_id = Convert.ToInt32(cmd[1]);
                         writeToStream(thisuser.stream, "USER_ID;OK");
                     }
+
+                    else if (cmd[0] == "NICK")
+                    {
+                        thisuser.data.nick = cmd[1];
+                        writeToStream(thisuser.stream, "NICK;OK");
+                    }
+
+                    else
+                    {
+                        thisuser.write("ERROR;20");
+                    }
+                }
+                else
+                {
+                    thisuser.write("ERROR;20");
                 }
             }
 
@@ -307,24 +392,53 @@ namespace gamesrv
             }
         }
 
+        public static void cacheGameDB()
+        {
+            MySqlDataReader reader = gamesrv.sql.game.select("SELECT * FROM ship_proto");
+            while (reader.Read())
+            {
+                gamesrv.game.proto.ship[Convert.ToInt32(reader["vnum"].ToString())] = reader.ToString();
+            }
+        }
+
         public static void Main(string[] args)
         {
             version = config.info.version;
             Console.WriteLine("Game Server v" + version + " starting up...");
-            //account.Open();
-            say("ACCOUNT CONNECTED");
-            //player.Open();
+            try
+            {
+                gamesrv.sql.player.c.Open();
+            }
+            catch (Exception e)
+            {
+                say("FAILED TO CONNECT PLAYER DATABASE: " + e.Message);
+                return;
+            }
             say("PLAYER CONNECTED");
-            //game.Open();
+            try
+            {
+                gamesrv.sql.game.c.Open();
+            }
+            catch (Exception e)
+            {
+                say("FAILED TO CONNECT GAME DATABASE: " + e.Message);
+                return;
+            }
             say("GAME CONNECTED");
+            say("CACHING GAME DATABASE");
+            //cacheGameDB();
+            say("DONE.");
             tcpListener = new TcpListener(IPAddress.Any, 3000);
             listenThread = new Thread(new ThreadStart(ListenForClients));
             listenThread.Start();
+            say("LISTEN THREAD - READY");
             if (config.pingtimeout > 0)
             {
                 Thread ping_thread = new Thread(new System.Threading.ThreadStart(gamesrv.pingbot.start));
                 ping_thread.Start();
+                say("PING THREAD READY");
             }
+            say("SERVER UP AND RUNNING - READY");
         }
 
         #endregion
