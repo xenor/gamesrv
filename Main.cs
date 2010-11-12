@@ -11,7 +11,87 @@ using MySql.Data.MySqlClient;
 
 namespace gamesrv
 {
+    #region config
+    public class config
+    {
+        public class mysql
+        {
+            public class player
+            {
+                public const string config = "SERVER=192.168.56.101;" +
+                                                "DATABASE=gamesrv_player;" +
+                                                "UID=lunatic3;" +
+                                                "PASSWORD=lalaftw#!;";
+                public const string dbname = "gamesrv_player";
+            }
+            public class game
+            {
+                public const string config = "SERVER=192.168.56.101;" +
+                                                "DATABASE=gamesrv_game;" +
+                                                "UID=lunatic3;" +
+                                                "PASSWORD=lalaftw#!;";
+                public const string dbname = "gamesrv_game";
+            }
+        }
+        public class locale
+        {
+            public const string welcome = "WELCOME";
+            public const string bye = "BYE";
+        }
+        public class info
+        {
+            public static int major_version = 0;
+            public static int minor_version = 1;
+            public static int sub_version = 5;
+            public static string version = major_version + "."
+                                                + minor_version + "."
+                                                + sub_version;
+            public static string[] masternames = { "Anohros", "xenor" };
+        }
+        public static int pingtimeout = 0;
+        public static bool debug = true;
+    }
+    #endregion
 
+    #region sql
+    class sql
+    {
+        public class player
+        {
+            public static MySqlConnection c = new MySqlConnection(config.mysql.player.config);
+            public static MySqlDataReader select(string query)
+            {
+                MySqlCommand cmd = c.CreateCommand();
+                cmd.CommandText = query;
+                MySqlDataReader reader = cmd.ExecuteReader();
+                return reader;
+            }
+        }
+        public class game
+        {
+            public static MySqlConnection c = new MySqlConnection(config.mysql.game.config);
+            public static MySqlDataReader select(string query)
+            {
+                MySqlCommand cmd = c.CreateCommand();
+                cmd.CommandText = query;
+                MySqlDataReader reader = cmd.ExecuteReader();
+                return reader;
+            }
+        }
+    }
+    #endregion
+
+    #region game
+    public class game
+    {
+        public class proto
+        {
+            public static List<string> ship = new List<string>();
+        }
+    }
+    #endregion
+
+    #region user
     public class user
     {
         public int user_id;
@@ -62,8 +142,8 @@ namespace gamesrv
                 if (reader.Read())
                 {
                     this.identified = true;
-					this.user_id = Convert.ToInt32(reader["account_id"].ToString());
-					this.data.nick = reader["nick"].ToString();
+                    this.user_id = Convert.ToInt32(reader["account_id"].ToString());
+                    this.data.nick = reader["nick"].ToString();
                     this.write("LOGIN;OK");
                 }
                 else
@@ -74,6 +154,7 @@ namespace gamesrv
             }
         }
     }
+    #endregion
 
     #region ping/pong
     public class pingbot
@@ -101,8 +182,7 @@ namespace gamesrv
                             {
                                 gamesrv.MainClass.writeToStream(thisuser.stream, "PING");
                             }
-							gamesrv.MainClass.say(timespan.ToString());
-                            if (thisuser.identified == false && timespan < config.logintimeout)
+                            if (thisuser.identified == false && timespan < ((config.pingtimeout - 2 * config.pingtimeout) / 1000))
                             {
                                 gamesrv.MainClass.writeToStream(thisuser.stream, "ERROR;13");
                                 gamesrv.MainClass.closeConn(thisuser);
@@ -115,83 +195,6 @@ namespace gamesrv
         }
     }
     #endregion
-
-    #region config
-    public class config
-    {
-        public class mysql
-        {
-            public class player
-            {
-                public const string config = "SERVER=192.168.56.101;" +
-                                                "DATABASE=gamesrv_player;" +
-                                                "UID=lunatic3;" +
-                                                "PASSWORD=lalaftw#!;";
-                public const string dbname = "gamesrv_player";
-            }
-            public class game
-            {
-                public const string config = "SERVER=192.168.56.101;" +
-                                                "DATABASE=gamesrv_game;" +
-                                                "UID=lunatic3;" +
-                                                "PASSWORD=lalaftw#!;";
-                public const string dbname = "gamesrv_game";
-            }
-        }
-        public class locale
-        {
-            public const string welcome = "WELCOME";
-            public const string bye = "BYE";
-        }
-        public class info
-        {
-            public static int major_version = 0;
-            public static int minor_version = 1;
-            public static int sub_version = 5;
-            public static string version = major_version + "."
-                                                + minor_version + "."
-                                                + sub_version;
-            public static string[] masternames = { "Anohros", "xenor" };
-        }
-        public static int pingtimeout = 10;
-		public static int logintimeout = -1;
-        public static bool debug = true;
-    }
-    #endregion
-
-    class sql
-    {
-        public class player
-        {
-            public static MySqlConnection c = new MySqlConnection(config.mysql.player.config);
-            public static MySqlDataReader select(string query)
-            {
-                MySqlCommand cmd = c.CreateCommand();
-                cmd.CommandText = query;
-                MySqlDataReader reader = cmd.ExecuteReader();
-                return reader;
-            }
-        }
-        public class game
-        {
-            public static MySqlConnection c = new MySqlConnection(config.mysql.game.config);
-            public static MySqlDataReader select(string query)
-            {
-                MySqlCommand cmd = c.CreateCommand();
-                cmd.CommandText = query;
-                MySqlDataReader reader = cmd.ExecuteReader();
-                return reader;
-            }
-        }
-    }
-
-    public class game
-    {
-        public class proto
-        {
-            public static List<string> ship = new List<string>();
-        }
-    }
 
     class MainClass
     {
