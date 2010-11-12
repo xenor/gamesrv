@@ -1,0 +1,15 @@
+[ 12.11.2010 12:29:52 ]: Using Syslog: ./syslog/1289564993.log
+[ 12.11.2010 12:29:52 ]: Game Server v0.1.5 starting up...
+[ 12.11.2010 12:29:57 ]: PLAYER CONNECTED
+[ 12.11.2010 12:30:02 ]: GAME CONNECTED
+[ 12.11.2010 12:30:02 ]: CACHING GAME DATABASE
+[ 12.11.2010 12:30:02 ]: DONE.
+[ 12.11.2010 12:30:02 ]: LISTEN THREAD - READY
+[ 12.11.2010 12:30:02 ]: SERVER UP AND RUNNING - READY
+[ 12.11.2010 12:30:10 ]: [ NEWUSER ] [ 0 ]: TIME: 1289565010
+[ 12.11.2010 12:30:10 ]: [   >>>   ] [ 0  ]: WELCOME
+[ 12.11.2010 12:30:14 ]: [   <<<   ] [ 0  ]: login;xenor;4;lalaftw#!
+[ 12.11.2010 12:30:14 ]: xenor
+[ 12.11.2010 12:30:14 ]: lalaftw#!
+[ 12.11.2010 12:30:14 ]: QUERY: SELECT * FROM gamesrv_player.accounts WHERE login = 'xenor' AND passwd = 'lalaftw#!'
+[ 12.11.2010 12:30:14 ]: [   >>>   ] [ 0  ]: LOGIN;ERROR;12

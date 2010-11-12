@@ -18,10 +18,11 @@ namespace gamesrv
         public int logintime;
         public NetworkStream stream;
         public int lastpong = gamesrv.MainClass.unixtime();
-        public int adminlevel = 0;
+        public bool identified = false;
         public class data_class
         {
             public string nick = "";
+            public int adminlevel = 0;
         }
         public data_class data = new data_class();
 
@@ -56,11 +57,20 @@ namespace gamesrv
             }
             else
             {
-                /*DataSet data = new DataSet();
-                string sql = "SELECT * FROM account WHERE login = '" + login + "' AND passwd = '" + passwd + "'";
-                MySqlCommand command =  gamesrv.MainClass.SQL.CreateCommand();
-                MySqlDataReader reader = command.ExecuteReader();*/
-                this.write("LOGIN;OK");
+                string qry = "SELECT * FROM " + config.mysql.player.dbname + ".accounts WHERE login = '" + login + "' AND passwd = '" + passwd + "'";
+                MySqlDataReader reader = gamesrv.sql.player.select(qry);
+                if (reader.Read())
+                {
+                    this.identified = true;
+					this.user_id = Convert.ToInt32(reader["account_id"].ToString());
+					this.data.nick = reader["nick"].ToString();
+                    this.write("LOGIN;OK");
+                }
+                else
+                {
+                    this.write("LOGIN;ERROR;12");
+                }
+                reader.Close();
             }
         }
     }
@@ -84,11 +94,18 @@ namespace gamesrv
                             int timespan = (config.pingtimeout / 1000) - (curtime - thisuser.lastpong);
                             if (timespan < 0)
                             {
+                                thisuser.write("ERROR;21");
                                 gamesrv.MainClass.closeConn(thisuser);
                             }
                             else
                             {
                                 gamesrv.MainClass.writeToStream(thisuser.stream, "PING");
+                            }
+							gamesrv.MainClass.say(timespan.ToString());
+                            if (thisuser.identified == false && timespan < config.logintimeout)
+                            {
+                                gamesrv.MainClass.writeToStream(thisuser.stream, "ERROR;13");
+                                gamesrv.MainClass.closeConn(thisuser);
                             }
                         }
                     }
@@ -110,6 +127,7 @@ namespace gamesrv
                                                 "DATABASE=gamesrv_player;" +
                                                 "UID=lunatic3;" +
                                                 "PASSWORD=lalaftw#!;";
+                public const string dbname = "gamesrv_player";
             }
             public class game
             {
@@ -117,6 +135,7 @@ namespace gamesrv
                                                 "DATABASE=gamesrv_game;" +
                                                 "UID=lunatic3;" +
                                                 "PASSWORD=lalaftw#!;";
+                public const string dbname = "gamesrv_game";
             }
         }
         public class locale
@@ -134,7 +153,8 @@ namespace gamesrv
                                                 + sub_version;
             public static string[] masternames = { "Anohros", "xenor" };
         }
-        public static int pingtimeout = 0;
+        public static int pingtimeout = 10;
+		public static int logintimeout = -1;
         public static bool debug = true;
     }
     #endregion
@@ -177,6 +197,9 @@ namespace gamesrv
     {
         #region sinnlos
         public static string version;
+
+        public static System.IO.FileStream logstream;
+
         public static TcpListener tcpListener;
         public static Thread listenThread;
         public static ASCIIEncoding encoder = new ASCIIEncoding();
@@ -196,6 +219,7 @@ namespace gamesrv
 
         public static void closeConn(user user)
         {
+            gamesrv.MainClass.say("[  KILLD  ] [ " + user.user_id + " ]: TIME: " + unixtime());
             gamesrv.MainClass.allusers.Remove(user);
             user.stream.Close();
         }
@@ -289,12 +313,12 @@ namespace gamesrv
                 else if (cmd[0] == "NOTICE")
                 {
                     string str2 = str.Substring(7);
-                    say("[  SPRED  ] [ " + thisuser.user_id + " ]: " + str2);
+                    say("[    N    ] [ " + thisuser.user_id + " ]: " + str2);
                     foreach (user user in allusers)
                     {
                         if (user != null && user.stream != null)
                         {
-                            writeToStream(user.stream, str2);
+                            writeToStream(user.stream, "NOTICE;" + str2);
                         }
                     }
                 }
@@ -375,10 +399,19 @@ namespace gamesrv
 
         #region acceptshit
 
+        public static void log(string str)
+        {
+            byte[] bytes = encoder.GetBytes(str);
+            logstream.Write(bytes, 0, bytes.Length);
+            logstream.Flush();
+        }
+
         public static void say(string str)
         {
             string curtime = DateTime.Now.ToString();
-            Console.WriteLine("[ " + curtime + " ]: " + str);
+            string writestring = "[ " + curtime + " ]: " + str + "\r\n";
+            Console.WriteLine(writestring.Trim());
+            log(writestring);
         }
 
         public static void ListenForClients()
@@ -404,7 +437,13 @@ namespace gamesrv
         public static void Main(string[] args)
         {
             version = config.info.version;
-            Console.WriteLine("Game Server v" + version + " starting up...");
+            int curtime = unixtime();
+            if (!System.IO.Directory.Exists("./syslog/")) System.IO.Directory.CreateDirectory("./syslog/");
+            logstream = System.IO.File.Create("./syslog/" + curtime + ".log");
+            /*logstream = System.IO.File.OpenWrite("./syslog/" + curtime + ".log");
+            logstream.Unlock(0, logstream.Length);*/
+            say("Using Syslog: ./syslog/" + curtime + ".log");
+            say("Game Server v" + version + " starting up...");
             try
             {
                 gamesrv.sql.player.c.Open();

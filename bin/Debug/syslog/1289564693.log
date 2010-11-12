@@ -1,0 +1,33 @@
+[ 12.11.2010 12:24:52 ]: Using Syslog: ./syslog/1289564693.log
+[ 12.11.2010 12:24:52 ]: Game Server v0.1.5 starting up...
+[ 12.11.2010 12:24:57 ]: PLAYER CONNECTED
+[ 12.11.2010 12:25:02 ]: GAME CONNECTED
+[ 12.11.2010 12:25:02 ]: CACHING GAME DATABASE
+[ 12.11.2010 12:25:02 ]: DONE.
+[ 12.11.2010 12:25:02 ]: LISTEN THREAD - READY
+[ 12.11.2010 12:25:02 ]: PING THREAD READY
+[ 12.11.2010 12:25:02 ]: SERVER UP AND RUNNING - READY
+[ 12.11.2010 12:25:03 ]: [ NEWUSER ] [ 0 ]: TIME: 1289564703
+[ 12.11.2010 12:25:03 ]: [   >>>   ] [ 0  ]: WELCOME
+[ 12.11.2010 12:25:07 ]: [   <<<   ] [ 0  ]: login;xenor;4;lalaftw#!
+[ 12.11.2010 12:25:07 ]: xenor
+[ 12.11.2010 12:25:07 ]: lalaftw#!
+[ 12.11.2010 12:25:07 ]: QUERY: SELECT * FROM gamesrv_player.accounts WHERE login = 'xenor' AND passwd = 'lalaftw#!'
+[ 12.11.2010 12:25:07 ]: C: 3
+[ 12.11.2010 12:25:07 ]: [   >>>   ] [ 0  ]: LOGIN;ERROR;12
+[ 12.11.2010 12:25:12 ]: [   >>>   ] [ 0  ]: PING
+[ 12.11.2010 12:25:22 ]: [   >>>   ] [ 0  ]: ERROR;21
+[ 12.11.2010 12:25:22 ]: [  KILLD  ] [ 0 ]: TIME: 1289564722
+[ 12.11.2010 12:25:29 ]: [ NEWUSER ] [ 0 ]: TIME: 1289564730
+[ 12.11.2010 12:25:29 ]: [   >>>   ] [ 0  ]: WELCOME
+[ 12.11.2010 12:25:32 ]: [   >>>   ] [ 0  ]: PING
+[ 12.11.2010 12:25:33 ]: [   <<<   ] [ 0  ]: login;xgewg;34;fesfe
+[ 12.11.2010 12:25:33 ]: xgewg
+[ 12.11.2010 12:25:33 ]: fesfe
+[ 12.11.2010 12:25:33 ]: QUERY: SELECT * FROM gamesrv_player.accounts WHERE login = 'xgewg' AND passwd = 'fesfe'
+[ 12.11.2010 12:25:33 ]: C: 3
+[ 12.11.2010 12:25:33 ]: [   >>>   ] [ 0  ]: LOGIN;ERROR;12
+[ 12.11.2010 12:25:34 ]: [   <<<   ] [ 0  ]: pong
+[ 12.11.2010 12:25:42 ]: [   >>>   ] [ 0  ]: PING
+[ 12.11.2010 12:25:52 ]: [   >>>   ] [ 0  ]: ERROR;21
+[ 12.11.2010 12:25:52 ]: [  KILLD  ] [ 0 ]: TIME: 1289564752

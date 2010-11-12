@@ -1,0 +1,29 @@
+[ 12.11.2010 12:44:15 ]: Using Syslog: ./syslog/1289565855.log
+[ 12.11.2010 12:44:15 ]: Game Server v0.1.5 starting up...
+[ 12.11.2010 12:44:21 ]: PLAYER CONNECTED
+[ 12.11.2010 12:44:26 ]: GAME CONNECTED
+[ 12.11.2010 12:44:26 ]: CACHING GAME DATABASE
+[ 12.11.2010 12:44:26 ]: DONE.
+[ 12.11.2010 12:44:26 ]: LISTEN THREAD - READY
+[ 12.11.2010 12:44:26 ]: SERVER UP AND RUNNING - READY
+[ 12.11.2010 12:44:28 ]: [ NEWUSER ] [ 0 ]: TIME: 1289565869
+[ 12.11.2010 12:44:28 ]: [   >>>   ] [ 0  ]: WELCOME
+[ 12.11.2010 12:44:31 ]: [   <<<   ] [ 0  ]: login;xenor;4;lalaftw#!
+[ 12.11.2010 12:44:31 ]: [   >>>   ] [ 1 xenor ]: LOGIN;OK
+[ 12.11.2010 12:44:38 ]: [   <<<   ] [ 1 xenor ]: notice;lolwas;
+[ 12.11.2010 12:44:38 ]: [    N    ] [ 1 ]: lolwas;
+[ 12.11.2010 12:44:38 ]: [   >>>   ] [ 1 xenor ]: NOTICE;lolwas;
+[ 12.11.2010 12:45:22 ]: [   <<<   ] [ 1 xenor ]: notice;opfer
+[ 12.11.2010 12:45:22 ]: [    N    ] [ 1 ]: opfer
+[ 12.11.2010 12:45:22 ]: [   >>>   ] [ 1 xenor ]: NOTICE;opfer
+[ 12.11.2010 12:45:33 ]: [   <<<   ] [ 1 xenor ]: notice;Guano Apes - Open your Eyes <333
+[ 12.11.2010 12:45:33 ]: [    N    ] [ 1 ]: Guano Apes - Open your Eyes <333
+[ 12.11.2010 12:45:33 ]: [   >>>   ] [ 1 xenor ]: NOTICE;Guano Apes - Open your Eyes <333
+[ 12.11.2010 12:47:50 ]: [   <<<   ] [ 1 xenor ]: quit
+[ 12.11.2010 12:47:50 ]: [   >>>   ] [ 1 xenor ]: BYE
+[ 12.11.2010 12:47:50 ]: [  KILLD  ] [ 1 ]: TIME: 1289566071
+[ 12.11.2010 12:50:43 ]: [ NEWUSER ] [ 0 ]: TIME: 1289566244
+[ 12.11.2010 12:50:43 ]: [   >>>   ] [ 0  ]: WELCOME
+[ 12.11.2010 12:50:44 ]: [   <<<   ] [ 0  ]: quit
+[ 12.11.2010 12:50:44 ]: [   >>>   ] [ 0  ]: BYE
+[ 12.11.2010 12:50:44 ]: [  KILLD  ] [ 0 ]: TIME: 1289566244

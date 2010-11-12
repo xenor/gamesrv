@@ -1,0 +1,22 @@
+[ 11.11.2010 20:09:18 ]: Using Syslog: ./syslog/1289506158.log
+[ 11.11.2010 20:09:18 ]: Game Server v0.1.5 starting up...
+[ 11.11.2010 20:09:23 ]: PLAYER CONNECTED
+[ 11.11.2010 20:09:28 ]: GAME CONNECTED
+[ 11.11.2010 20:09:28 ]: CACHING GAME DATABASE
+[ 11.11.2010 20:09:28 ]: DONE.
+[ 11.11.2010 20:09:28 ]: LISTEN THREAD - READY
+[ 11.11.2010 20:09:28 ]: SERVER UP AND RUNNING - READY
+[ 11.11.2010 20:09:28 ]: [ NEWUSER ] [ 0 ]: TIME: 1289506169
+[ 11.11.2010 20:09:28 ]: [   >>>   ] [ 0  ]: WELCOME
+[ 11.11.2010 20:09:30 ]: [   <<<   ] [ 0  ]: notice;lolwas
+[ 11.11.2010 20:09:30 ]: [    N    ] [ 0 ]: lolwas
+[ 11.11.2010 20:09:30 ]: [   >>>   ] [ 0  ]: NOTICE;lolwas
+[ 11.11.2010 20:09:44 ]: [   <<<   ] [ 0  ]: nick;xenor
+[ 11.11.2010 20:09:44 ]: [   >>>   ] [ 0 xenor ]: NICK;OK
+[ 11.11.2010 20:09:45 ]: [   <<<   ] [ 0 xenor ]: lolwas
+[ 11.11.2010 20:09:45 ]: [   >>>   ] [ 0 xenor ]: ERROR;20
+[ 11.11.2010 20:09:47 ]: [   <<<   ] [ 0 xenor ]: notice;lolwas
+[ 11.11.2010 20:09:47 ]: [    N    ] [ 0 ]: lolwas
+[ 11.11.2010 20:09:47 ]: [   >>>   ] [ 0 xenor ]: NOTICE;lolwas
+[ 11.11.2010 20:09:52 ]: [   <<<   ] [ 0 xenor ]: debug;spread;lolwas
+[ 11.11.2010 20:09:52 ]: [   >>>   ] [ 0 xenor ]: ERROR;20
