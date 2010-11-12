@@ -7,6 +7,7 @@ using System.Net;
 using System.Data;
 using System.Collections.Generic;
 using MySql.Data.MySqlClient;
+using LuaInterface;
 #endregion
 
 namespace gamesrv
@@ -49,7 +50,7 @@ namespace gamesrv
             public static string[] masternames = { "Anohros", "xenor" };
         }
         public static int pingtimeout = 6000;
-		public static int logintimeout = -1;
+        public static int logintimeout = -1;
         public static bool debug = true;
     }
     #endregion
@@ -100,7 +101,7 @@ namespace gamesrv
         public NetworkStream stream;
         public int lastpong = gamesrv.MainClass.unixtime();
         public bool identified = false;
-		public bool identping = false;
+        public bool identping = false;
         public class data_class
         {
             public string nick = "";
@@ -189,10 +190,10 @@ namespace gamesrv
                                 gamesrv.MainClass.writeToStream(thisuser.stream, "ERROR;13");
                                 gamesrv.MainClass.closeConn(thisuser);
                             }
-							else if (thisuser.identified == false && thisuser.identping == false)
-							{
-								thisuser.identping = true;
-							}
+                            else if (thisuser.identified == false && thisuser.identping == false)
+                            {
+                                thisuser.identping = true;
+                            }
                         }
                     }
                 }
