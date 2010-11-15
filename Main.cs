@@ -7,7 +7,7 @@ using System.Net;
 using System.Data;
 using System.Collections.Generic;
 using MySql.Data.MySqlClient;
-using LuaInterface;
+//using LuaInterface;
 #endregion
 
 namespace gamesrv
@@ -89,6 +89,18 @@ namespace gamesrv
         public class proto
         {
             public static List<string> ship = new List<string>();
+        }
+    }
+    #endregion
+
+    #region quest
+    class quest
+    {
+        public quest()
+        {
+            /*Lua lua = new Lua();
+            lua.DoFile("test.quest");
+             */
         }
     }
     #endregion
