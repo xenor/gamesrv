@@ -39,7 +39,7 @@ namespace gamesrv
             public const string welcome = "WELCOME";
             public const string bye = "BYE";
         }
-        public class info
+        public class info			// JEAH LINE 42 <3
         {
             public static int major_version = 0;
             public static int minor_version = 1;
@@ -49,7 +49,7 @@ namespace gamesrv
                                                 + sub_version;
             public static string[] masternames = { "Anohros", "xenor" };
         }
-        public static int pingtimeout = 6000;
+        public static int pingtimeout = 0;
         public static int logintimeout = -1;
         public static bool debug = true;
     }
@@ -111,6 +111,7 @@ namespace gamesrv
         public int user_id;
         public int logintime;
         public NetworkStream stream;
+		public NetworkStream logstream;
         public int lastpong = gamesrv.MainClass.unixtime();
         public bool identified = false;
         public bool identping = false;
@@ -119,7 +120,14 @@ namespace gamesrv
             public string nick = "";
             public int adminlevel = 0;
         }
+		public class position_class
+		{
+			public int x;
+			public int y;
+			public int z;
+		}
         public data_class data = new data_class();
+		public position_class position = new position_class();
 
         public void write(string str)
         {
@@ -129,12 +137,18 @@ namespace gamesrv
             {
                 this.stream.Write(buffer, 0, buffer.Length);
                 gamesrv.MainClass.say("[   >>>   ] [ " + this.user_id + " " + this.data.nick + " ]: " + str);
+				this.log("[   >>>   ] [ " + this.user_id + " " + this.data.nick + " ]: " + str);
             }
             catch
             {
                 Console.WriteLine("ERROR WHILE WRITING TO " + this.user_id);
             }
         }
+		
+		public void log(string str)
+		{
+			gamesrv.MainClass.writeToStream(this.logstream,str);
+		}
 
         public user(int user_id, NetworkStream stream)
         {
@@ -159,6 +173,7 @@ namespace gamesrv
                     this.identified = true;
                     this.user_id = Convert.ToInt32(reader["account_id"].ToString());
                     this.data.nick = reader["nick"].ToString();
+					this.data.adminlevel = Convert.ToInt32(reader["adminlevel"].ToString());
                     this.write("LOGIN;OK");
                 }
                 else
@@ -257,6 +272,18 @@ namespace gamesrv
             }
             return new user(0, null);
         }
+		
+		public static user findUserByNick(string nick)
+        {
+            foreach (user cur_user in allusers)
+            {
+                if (cur_user != null && cur_user.data.nick == nick)
+                {
+                    return cur_user;
+                }
+            }
+            return new user(0, null);
+        }
 
         public static void writeToStream(NetworkStream stream, string text)
         {
@@ -269,6 +296,7 @@ namespace gamesrv
                 {
                     stream.Write(buffer, 0, buffer.Length);
                     gamesrv.MainClass.say("[   >>>   ] [ " + thisuser.user_id + " " + thisuser.data.nick + " ]: " + text);
+					thisuser.log("[   >>>   ] [ " + thisuser.user_id + " " + thisuser.data.nick + " ]: " + text);
                 }
                 catch
                 {
@@ -320,6 +348,7 @@ namespace gamesrv
                 user thisuser = findUserByStream(clientStream);
                 //say("[   <<<   ] [ " + thisuser.user_id + " ]: " + str);
                 say("[   <<<   ] [ " + thisuser.user_id + " " + thisuser.data.nick + " ]: " + str);
+				thisuser.log("[   <<<   ] [ " + thisuser.user_id + " " + thisuser.data.nick + " ]: " + str);
                 string[] cmd = str.Split(';');
                 cmd[0] = cmd[0].ToUpper();
                 #endregion
@@ -358,6 +387,7 @@ namespace gamesrv
                 }
                 #endregion
 
+				#region login
                 else if (cmd[0] == "LOGIN")
                 {
                     if (cmd.Length > 3)
@@ -372,7 +402,9 @@ namespace gamesrv
                         thisuser.write("LOGIN;ERROR;11");
                     }
                 }
+				#endregion
 
+				#region message
                 else if (cmd[0] == "MESSAGE")
                 {
                     bool sent = false;
@@ -390,7 +422,26 @@ namespace gamesrv
                         thisuser.write("MESSAGE;ERROR;30");
                     }
                 }
+				#endregion
 
+				#region admin level 2+
+				else if (thisuser.data.adminlevel > 1 && cmd[0] == "WARP")
+				{
+					if(cmd.Length > 0)
+					{
+						thisuser.position.x = Convert.ToInt32(cmd[1]);
+						thisuser.position.y = Convert.ToInt32(cmd[2]);
+						thisuser.position.z = Convert.ToInt32(cmd[3]);
+						thisuser.write("WARP;OK;" + thisuser.position.x + ";" + thisuser.position.y + ";" + thisuser.position.z);
+					}
+					else
+					{
+						thisuser.write("WARP;ERROR;22;WARP <X> <Y> [<Z>]");
+					}
+				}
+				#endregion
+				
+				#region debug
                 else if (config.debug == true)
                 {
                     if (cmd[0] == "USER_ID")
@@ -404,6 +455,21 @@ namespace gamesrv
                         thisuser.data.nick = cmd[1];
                         writeToStream(thisuser.stream, "NICK;OK");
                     }
+					
+					else if (cmd[0] == "POS")
+					{
+						int x = thisuser.position.x;
+						int y = thisuser.position.y;
+						int z = thisuser.position.z;
+						thisuser.write("[ " + x + " | " + y + " | " + z + " ]");
+					}
+					
+					else if (cmd[0] == "LOG")
+					{
+						thisuser.identified = true;
+						user user = findUserByNick(cmd[1]);
+						user.logstream = thisuser.stream;
+					}
 
                     else
                     {
@@ -414,6 +480,7 @@ namespace gamesrv
                 {
                     thisuser.write("ERROR;20");
                 }
+				#endregion
             }
 
             tcpClient.Close();
