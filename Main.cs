@@ -7,7 +7,6 @@ using System.Net;
 using System.Data;
 using System.Collections.Generic;
 using MySql.Data.MySqlClient;
-//using LuaInterface;
 #endregion
 
 namespace gamesrv
@@ -42,22 +41,25 @@ namespace gamesrv
         public class info			// JEAH LINE 42 <3
         {
             public static int major_version = 0;
-            public static int minor_version = 1;
-            public static int sub_version = 5;
+            public static int minor_version = 2;
+            public static int sub_version = 1;
             public static string version = major_version + "."
                                                 + minor_version + "."
                                                 + sub_version;
             public static string[] masternames = { "Anohros", "xenor" };
         }
-        public static int pingtimeout = 0;
+        public static int pingtimeout = 1000;
         public static int logintimeout = -1;
         public static bool debug = true;
+        public static bool testserver = true;
     }
     #endregion
 
     #region sql
     class sql
     {
+        public static MySqlCommand cmd = new MySqlCommand();
+        public static MySqlDataReader reader;
         public class player
         {
             public static MySqlConnection c = new MySqlConnection(config.mysql.player.config);
@@ -74,9 +76,11 @@ namespace gamesrv
             public static MySqlConnection c = new MySqlConnection(config.mysql.game.config);
             public static MySqlDataReader select(string query)
             {
-                MySqlCommand cmd = c.CreateCommand();
-                cmd.CommandText = query;
-                MySqlDataReader reader = cmd.ExecuteReader();
+                try { sql.reader.Close(); }
+                catch { }
+                sql.cmd = c.CreateCommand();
+                sql.cmd.CommandText = query;
+                sql.reader = sql.cmd.ExecuteReader();
                 return reader;
             }
         }
@@ -111,7 +115,7 @@ namespace gamesrv
         public int user_id;
         public int logintime;
         public NetworkStream stream;
-		public NetworkStream logstream;
+        public NetworkStream logstream;
         public int lastpong = gamesrv.MainClass.unixtime();
         public bool identified = false;
         public bool identping = false;
@@ -120,14 +124,14 @@ namespace gamesrv
             public string nick = "";
             public int adminlevel = 0;
         }
-		public class position_class
-		{
-			public int x;
-			public int y;
-			public int z;
-		}
+        public class position_class
+        {
+            public int x;
+            public int y;
+            public int z;
+        }
         public data_class data = new data_class();
-		public position_class position = new position_class();
+        public position_class position = new position_class();
 
         public void write(string str)
         {
@@ -136,19 +140,20 @@ namespace gamesrv
             try
             {
                 this.stream.Write(buffer, 0, buffer.Length);
-                gamesrv.MainClass.say("[   >>>   ] [ " + this.user_id + " " + this.data.nick + " ]: " + str);
-				this.log("[   >>>   ] [ " + this.user_id + " " + this.data.nick + " ]: " + str);
+                gamesrv.MainClass.say("[   >>>   ] [ " + this.user_id + " " + this.data.nick + " (" + this.data.adminlevel + ") ]: " + str);
+                this.log("[   >>>   ] [ " + this.user_id + " " + this.data.nick + " ]: " + str);
             }
             catch
             {
                 Console.WriteLine("ERROR WHILE WRITING TO " + this.user_id);
+                MainClass.closeConn(this);
             }
         }
-		
-		public void log(string str)
-		{
-			gamesrv.MainClass.writeToStream(this.logstream,str);
-		}
+
+        public void log(string str)
+        {
+            gamesrv.MainClass.writeToStream(this.logstream, str);
+        }
 
         public user(int user_id, NetworkStream stream)
         {
@@ -173,7 +178,7 @@ namespace gamesrv
                     this.identified = true;
                     this.user_id = Convert.ToInt32(reader["account_id"].ToString());
                     this.data.nick = reader["nick"].ToString();
-					this.data.adminlevel = Convert.ToInt32(reader["adminlevel"].ToString());
+                    this.data.adminlevel = Convert.ToInt32(reader["adminlevel"].ToString());
                     this.write("LOGIN;OK");
                 }
                 else
@@ -230,10 +235,39 @@ namespace gamesrv
     }
     #endregion
 
+    #region Monster Class
+    class mob
+    {
+        public class position_class
+        {
+            public int x = 0;
+            public int y = 0;
+            public int z = 0;
+        }
+        public position_class position = new position_class();
+        public int vnum;
+        public mob(int vnum)
+        {
+            this.vnum = vnum;
+        }
+        public void kill(int user_id)
+        {
+
+        }
+        public void warp(int x, int y, int z)
+        {
+            this.position.x = x;
+            this.position.y = y;
+            this.position.z = z;
+        }
+    }
+    #endregion
+
     class MainClass
     {
         #region sinnlos
         public static string version;
+        public static Random rand = new Random();
 
         public static System.IO.FileStream logstream;
 
@@ -245,6 +279,8 @@ namespace gamesrv
         public static NetworkStream[] users = new NetworkStream[4096];
         public static int user_count = 0;
         public static List<user> allusers = new List<user>();
+
+        public static List<mob> mobs = new List<mob>();
 
         public static int unixtime()
         {
@@ -272,8 +308,8 @@ namespace gamesrv
             }
             return new user(0, null);
         }
-		
-		public static user findUserByNick(string nick)
+
+        public static user findUserByNick(string nick)
         {
             foreach (user cur_user in allusers)
             {
@@ -296,7 +332,7 @@ namespace gamesrv
                 {
                     stream.Write(buffer, 0, buffer.Length);
                     gamesrv.MainClass.say("[   >>>   ] [ " + thisuser.user_id + " " + thisuser.data.nick + " ]: " + text);
-					thisuser.log("[   >>>   ] [ " + thisuser.user_id + " " + thisuser.data.nick + " ]: " + text);
+                    thisuser.log("[   >>>   ] [ " + thisuser.user_id + " " + thisuser.data.nick + " ]: " + text);
                 }
                 catch
                 {
@@ -309,6 +345,7 @@ namespace gamesrv
 
         public static void HandleClientComm(object client)
         {
+            #region accept user
             TcpClient tcpClient = (TcpClient)client;
             NetworkStream clientStream = tcpClient.GetStream();
             users[user_count] = clientStream;
@@ -320,7 +357,7 @@ namespace gamesrv
 
             byte[] message = new byte[4096];
             int bytesRead;
-
+            #endregion
             while (true)
             {
 
@@ -344,143 +381,168 @@ namespace gamesrv
                 }
 
                 //message has successfully been received
-                string str = encoder.GetString(message, 0, bytesRead).Trim();
+                string fullstr = encoder.GetString(message, 0, bytesRead).Trim();
                 user thisuser = findUserByStream(clientStream);
-                //say("[   <<<   ] [ " + thisuser.user_id + " ]: " + str);
-                say("[   <<<   ] [ " + thisuser.user_id + " " + thisuser.data.nick + " ]: " + str);
-				thisuser.log("[   <<<   ] [ " + thisuser.user_id + " " + thisuser.data.nick + " ]: " + str);
-                string[] cmd = str.Split(';');
-                cmd[0] = cmd[0].ToUpper();
+                char[] split = "\r\n".ToCharArray();
+                string[] strs = fullstr.Split(split);
+                foreach (string str in strs)
+                {
+                    if (str.Trim() != "")
+                    {
+                        say("[   <<<   ] [ " + thisuser.user_id + " " + thisuser.data.nick + " ]: " + str);
+                        thisuser.log("[   <<<   ] [ " + thisuser.user_id + " " + thisuser.data.nick + " ]: " + str);
+                        string[] cmd = str.Split(';');
+                        cmd[0] = cmd[0].ToUpper();
                 #endregion
 
-                #region base (QUIT/NOTICE)
+                        #region base (QUIT/NOTICE)
 
-                if (cmd[0] == "QUIT")
-                {
-                    writeToStream(clientStream, config.locale.bye);
-                    closeConn(thisuser);
-                }
-
-                else if (cmd[0] == "NOTICE")
-                {
-                    string str2 = str.Substring(7);
-                    say("[    N    ] [ " + thisuser.user_id + " ]: " + str2);
-                    foreach (user user in allusers)
-                    {
-                        if (user != null && user.stream != null)
+                        if (cmd[0] == "QUIT")
                         {
-                            writeToStream(user.stream, "NOTICE;" + str2);
+                            writeToStream(clientStream, config.locale.bye);
+                            closeConn(thisuser);
+                        }
+
+                        else if (cmd[0] == "NOTICE")
+                        {
+                            string str2 = str.Substring(7);
+                            say("[    N    ] [ " + thisuser.user_id + " ]: " + str2);
+                            foreach (user user in allusers)
+                            {
+                                if (user != null && user.stream != null)
+                                {
+                                    writeToStream(user.stream, "NOTICE;" + str2);
+                                }
+                            }
+                        }
+
+                        #endregion
+
+                        #region ping/pong
+                        else if (cmd[0] == "PING")
+                        {
+                            writeToStream(thisuser.stream, "PONG");
+                        }
+                        else if (cmd[0] == "PONG")
+                        {
+                            thisuser.lastpong = unixtime();
+                        }
+                        #endregion
+
+                        #region login
+                        else if (cmd[0] == "LOGIN")
+                        {
+                            if (cmd.Length > 3)
+                            {
+                                string username = cmd[1];
+                                char[] pwlength = cmd[2].ToCharArray();
+                                string password = cmd[3];
+                                thisuser.identAs(username, password);
+                            }
+                            else
+                            {
+                                thisuser.write("LOGIN;ERROR;11");
+                            }
+                        }
+                        #endregion
+
+                        #region message
+                        else if (cmd[0] == "MESSAGE")
+                        {
+                            bool sent = false;
+                            foreach (user cuser in allusers)
+                            {
+                                if (cuser.data.nick == cmd[1])
+                                {
+                                    string msg = str.Substring(9 + cmd[1].Length);
+                                    cuser.write("MESSAGE;" + thisuser.data.nick + ";" + msg);
+                                    sent = true;
+                                }
+                            }
+                            if (sent == false)
+                            {
+                                thisuser.write("MESSAGE;ERROR;30");
+                            }
+                        }
+                        #endregion
+
+                        #region admin level 2+
+                        else if ((config.testserver == true || thisuser.data.adminlevel > 1) && cmd[0] == "WARP")
+                        {
+                            if (cmd.Length > 0)
+                            {
+                                thisuser.position.x = Convert.ToInt32(cmd[1]);
+                                thisuser.position.y = Convert.ToInt32(cmd[2]);
+                                thisuser.position.z = Convert.ToInt32(cmd[3]);
+                                thisuser.write("WARP;OK;" + thisuser.position.x + ";" + thisuser.position.y + ";" + thisuser.position.z);
+                            }
+                            else
+                            {
+                                thisuser.write("WARP;ERROR;22;WARP <X> <Y> [<Z>]");
+                            }
+                        }
+
+                        else if ((config.testserver == true || thisuser.data.adminlevel > 1) && cmd[0] == "SPAWN")
+                        {
+                            if (cmd.Length > 2)
+                            {
+                                int count = Convert.ToInt32(cmd[2]);
+                            }
+                            int mob = Convert.ToInt32(cmd[1]);
+                            MySqlDataReader res = sql.game.select("SELECT * FROM ship_proto WHERE vnum = '" + cmd[1] + "'");
+                            res.Read();
+                            int x = rand.Next(thisuser.position.x - 10, thisuser.position.x + 10);
+                            int y = rand.Next(thisuser.position.y - 10, thisuser.position.y + 10);
+                            int z = rand.Next(thisuser.position.z - 10, thisuser.position.z + 10);
+                            mob thismob = new mob(Convert.ToInt32(res["vnum"]));
+                            thismob.warp(x, y, z);
+                            gamesrv.MainClass.mobs.Add(thismob);
+                            thisuser.write("SPAWN;OK;" + res["vnum"] + ";" + x + ";" + y + ";" + z);
+                        }
+                        #endregion
+
+                        #region debug
+                        else if (config.debug == true)
+                        {
+                            if (cmd[0] == "USER_ID")
+                            {
+                                thisuser.user_id = Convert.ToInt32(cmd[1]);
+                                writeToStream(thisuser.stream, "USER_ID;OK");
+                            }
+
+                            else if (cmd[0] == "NICK")
+                            {
+                                thisuser.data.nick = cmd[1];
+                                writeToStream(thisuser.stream, "NICK;OK");
+                            }
+
+                            else if (cmd[0] == "POS")
+                            {
+                                int x = thisuser.position.x;
+                                int y = thisuser.position.y;
+                                int z = thisuser.position.z;
+                                thisuser.write("[ " + x + " | " + y + " | " + z + " ]");
+                            }
+
+                            else if (cmd[0] == "LOG")
+                            {
+                                thisuser.identified = true;
+                                user user = findUserByNick(cmd[1]);
+                                user.logstream = thisuser.stream;
+                            }
+
+                            else
+                            {
+                                thisuser.write("ERROR;20");
+                            }
+                        }
+                        else
+                        {
+                            thisuser.write("ERROR;20");
                         }
                     }
                 }
-
-                #endregion
-
-                #region ping/pong
-                else if (cmd[0] == "PING")
-                {
-                    writeToStream(thisuser.stream, "PONG");
-                }
-                else if (cmd[0] == "PONG")
-                {
-                    thisuser.lastpong = unixtime();
-                }
-                #endregion
-
-				#region login
-                else if (cmd[0] == "LOGIN")
-                {
-                    if (cmd.Length > 3)
-                    {
-                        string username = cmd[1];
-                        char[] pwlength = cmd[2].ToCharArray();
-                        string password = cmd[3];
-                        thisuser.identAs(username, password);
-                    }
-                    else
-                    {
-                        thisuser.write("LOGIN;ERROR;11");
-                    }
-                }
-				#endregion
-
-				#region message
-                else if (cmd[0] == "MESSAGE")
-                {
-                    bool sent = false;
-                    foreach (user cuser in allusers)
-                    {
-                        if (cuser.data.nick == cmd[1])
-                        {
-                            string msg = str.Substring(9 + cmd[1].Length);
-                            cuser.write("MESSAGE;" + thisuser.data.nick + ";" + msg);
-                            sent = true;
-                        }
-                    }
-                    if (sent == false)
-                    {
-                        thisuser.write("MESSAGE;ERROR;30");
-                    }
-                }
-				#endregion
-
-				#region admin level 2+
-				else if (thisuser.data.adminlevel > 1 && cmd[0] == "WARP")
-				{
-					if(cmd.Length > 0)
-					{
-						thisuser.position.x = Convert.ToInt32(cmd[1]);
-						thisuser.position.y = Convert.ToInt32(cmd[2]);
-						thisuser.position.z = Convert.ToInt32(cmd[3]);
-						thisuser.write("WARP;OK;" + thisuser.position.x + ";" + thisuser.position.y + ";" + thisuser.position.z);
-					}
-					else
-					{
-						thisuser.write("WARP;ERROR;22;WARP <X> <Y> [<Z>]");
-					}
-				}
-				#endregion
-				
-				#region debug
-                else if (config.debug == true)
-                {
-                    if (cmd[0] == "USER_ID")
-                    {
-                        thisuser.user_id = Convert.ToInt32(cmd[1]);
-                        writeToStream(thisuser.stream, "USER_ID;OK");
-                    }
-
-                    else if (cmd[0] == "NICK")
-                    {
-                        thisuser.data.nick = cmd[1];
-                        writeToStream(thisuser.stream, "NICK;OK");
-                    }
-					
-					else if (cmd[0] == "POS")
-					{
-						int x = thisuser.position.x;
-						int y = thisuser.position.y;
-						int z = thisuser.position.z;
-						thisuser.write("[ " + x + " | " + y + " | " + z + " ]");
-					}
-					
-					else if (cmd[0] == "LOG")
-					{
-						thisuser.identified = true;
-						user user = findUserByNick(cmd[1]);
-						user.logstream = thisuser.stream;
-					}
-
-                    else
-                    {
-                        thisuser.write("ERROR;20");
-                    }
-                }
-                else
-                {
-                    thisuser.write("ERROR;20");
-                }
-				#endregion
+                        #endregion
             }
 
             tcpClient.Close();
@@ -499,7 +561,10 @@ namespace gamesrv
         {
             string curtime = DateTime.Now.ToString();
             string writestring = "[ " + curtime + " ]: " + str + "\r\n";
-            Console.WriteLine(writestring.Trim());
+            if(config.debug == true)
+			{
+				Console.WriteLine(writestring.Trim());
+			}
             log(writestring);
         }
 
@@ -529,8 +594,6 @@ namespace gamesrv
             int curtime = unixtime();
             if (!System.IO.Directory.Exists("./syslog/")) System.IO.Directory.CreateDirectory("./syslog/");
             logstream = System.IO.File.Create("./syslog/" + curtime + ".log");
-            /*logstream = System.IO.File.OpenWrite("./syslog/" + curtime + ".log");
-            logstream.Unlock(0, logstream.Length);*/
             say("Using Syslog: ./syslog/" + curtime + ".log");
             say("Game Server v" + version + " starting up...");
             try

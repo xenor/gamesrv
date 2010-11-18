@@ -1,0 +1,17 @@
+[ 18.11.2010 15:51:09 ]: Using Syslog: ./syslog/1290095470.log
+[ 18.11.2010 15:51:09 ]: Game Server v0.1.5 starting up...
+[ 18.11.2010 15:51:14 ]: PLAYER CONNECTED
+[ 18.11.2010 15:51:19 ]: GAME CONNECTED
+[ 18.11.2010 15:51:19 ]: CACHING GAME DATABASE
+[ 18.11.2010 15:51:19 ]: DONE.
+[ 18.11.2010 15:51:19 ]: LISTEN THREAD - READY
+[ 18.11.2010 15:51:19 ]: SERVER UP AND RUNNING - READY
+[ 18.11.2010 15:51:20 ]: [ NEWUSER ] [ 0 ]: TIME: 1290095481
+[ 18.11.2010 15:51:20 ]: [   >>>   ] [ 0  ]: WELCOME
+[ 18.11.2010 15:51:23 ]: [   <<<   ] [ 0  ]: lolwas
+[ 18.11.2010 15:51:23 ]: [   >>>   ] [ 0  (0) ]: ERROR;20
+[ 18.11.2010 15:51:29 ]: [   <<<   ] [ 0  ]: login;xenor;0;lalaftw#!
+[ 18.11.2010 15:51:29 ]: [   >>>   ] [ 1 xenor (7) ]: LOGIN;OK
+[ 18.11.2010 15:53:27 ]: [   <<<   ] [ 1 xenor ]: spawn;1001;0
+[ 18.11.2010 15:53:27 ]: [   >>>   ] [ 1 xenor (7) ]: SPAWN;OK;Test Station
+[ 18.11.2010 15:53:32 ]: [   <<<   ] [ 1 xenor ]: spawn;1001;1
