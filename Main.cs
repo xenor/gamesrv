@@ -360,6 +360,12 @@ namespace gamesrv
             gamesrv.MainClass.say("[  KILLD  ] [ " + user.user_id + " ]: TIME: " + unixtime());
             gamesrv.MainClass.allusers.Remove(user);
             user.stream.Close();
+			List<user> list = allusers;
+			allusers = new List<user>{};
+			foreach(user thisuser in list)
+			{
+				allusers.Add(thisuser);
+			}
         }
 
         public static user findUserByStream(NetworkStream stream)
@@ -408,6 +414,20 @@ namespace gamesrv
         {
             return inRange(i1, i2, 10);
         }
+		
+		public static void fixUsers()
+		{
+			user[] list = allusers.ToArray();
+			allusers = null;
+			allusers = new List<user>();
+			foreach(user thisuser in list)
+			{
+				if(thisuser.stream != null)
+				{
+					allusers.Add(thisuser);
+				}
+			}
+		}
 
         public static void writeToStream(NetworkStream stream, string text)
         {
@@ -495,13 +515,34 @@ namespace gamesrv
                         {
                             string str2 = str.Substring(7);
                             say("[    N    ] [ " + thisuser.user_id + " ]: " + str2);
-                            foreach (user user in allusers)
-                            {
-                                if (user != null && user.stream != null)
-                                {
-                                    user.write("NOTICE;" + str2);
-                                }
-                            }
+							fixUsers();
+							bool fail = true;
+							while(fail == true)
+							{
+								try
+								{
+									fail = false;
+		                            foreach (user user in allusers)
+		                            {
+		                                if (user != null && user.stream != null)
+		                                {
+											try
+											{
+		                                    	user.write("NOTICE;" + str2);
+											}
+											catch {}
+		                                }
+										else
+										{
+											closeConn(user);
+										}
+		                            }
+								}
+								catch
+								{
+									fail = true;
+								}
+							}
                         }
 
                         #endregion
@@ -829,11 +870,24 @@ namespace gamesrv
 				{
 					for(int i = 10;i > 0; i--)
 					{
-						foreach(user thisuser in allusers)
+						fixUsers();
+						bool fail = true;
+						while(fail == true)
 						{
-							thisuser.write("SHUTDOWN;50;" + i);
+							try
+							{
+								fail = false;
+								foreach(user thisuser in allusers)
+								{
+									thisuser.write("SHUTDOWN;50;" + i);
+								}
+								Thread.Sleep(1000);
+							}
+							catch
+							{
+								fail = true;
+							}
 						}
-						Thread.Sleep(1000);
 					}
 					foreach(user thisuser in allusers)
 					{
@@ -848,7 +902,7 @@ namespace gamesrv
 						ping_thread.Abort();
 						ping_thread.Interrupt();
 					}
-					catch(Exception e){}
+					catch{}
 					say("SHUTDOWN COMPLETE AT " + unixtime());
 					Thread.CurrentThread.Abort();
 					Thread.CurrentThread.Interrupt();
