@@ -3,6 +3,7 @@ using System;
 using System.Text;
 using System.Net.Sockets;
 using System.Threading;
+using System.Diagnostics;
 using System.Net;
 using System.Data;
 using System.Collections.Generic;
@@ -48,7 +49,7 @@ namespace gamesrv
                                                 + sub_version;
             public static string[] masternames = { "Anohros", "xenor" };
         }
-        public static int pingtimeout = 1000;
+        public static int pingtimeout = 0;
         public static int logintimeout = -1;
         public static bool debug = true;
         public static bool testserver = true;
@@ -104,7 +105,7 @@ namespace gamesrv
         {
             /*Lua lua = new Lua();
             lua.DoFile("test.quest");
-             */
+                */
         }
     }
     #endregion
@@ -141,7 +142,7 @@ namespace gamesrv
             {
                 this.stream.Write(buffer, 0, buffer.Length);
                 gamesrv.MainClass.say("[   >>>   ] [ " + this.user_id + " " + this.data.nick + " (" + this.data.adminlevel + ") ]: " + str);
-                this.log("[   >>>   ] [ " + this.user_id + " " + this.data.nick + " ]: " + str);
+                this.log("[   >>>   ] [ " + this.user_id + " " + this.data.nick + " (" + this.data.adminlevel + ") ]: " + str);
             }
             catch
             {
@@ -215,11 +216,11 @@ namespace gamesrv
                             }
                             else
                             {
-                                gamesrv.MainClass.writeToStream(thisuser.stream, "PING");
+                                thisuser.write("PING");
                             }
                             if (thisuser.identified == false && thisuser.identping == true)
                             {
-                                gamesrv.MainClass.writeToStream(thisuser.stream, "ERROR;13");
+                                thisuser.write("ERROR;13");
                                 gamesrv.MainClass.closeConn(thisuser);
                             }
                             else if (thisuser.identified == false && thisuser.identping == false)
@@ -245,20 +246,81 @@ namespace gamesrv
             public int z = 0;
         }
         public position_class position = new position_class();
-        public int vnum;
-        public mob(int vnum)
+		
+		public int id = 0;
+        public int vnum = 0;
+		public int attackrange = 0;
+		public int firerate = 0;
+		public int firespeed = 0;
+		public int nextshot = 0;
+		
+		public List<user> hate = new List<user>();
+		
+        public mob(int vnum, MySqlDataReader res)
         {
             this.vnum = vnum;
+			MainClass.mobcount++;
+			this.id = MainClass.mobcount;
+			this.attackrange = Convert.ToInt32(res["attackrange"].ToString());
+			this.firerate = Convert.ToInt32(res["firerate"].ToString());
+			this.firespeed = Convert.ToInt32(res["firespeed"].ToString());
         }
-        public void kill(int user_id)
-        {
-
-        }
+		
         public void warp(int x, int y, int z)
         {
             this.position.x = x;
             this.position.y = y;
             this.position.z = z;
+        }
+    }
+    #endregion
+
+	class attack
+	{
+		public void start(int user_id, int mob_id)
+		{
+			
+		}
+	}
+	
+    #region NPC Control
+    class npc_control
+    {
+        public void start()
+        {
+            while (true)
+            {
+                foreach (mob thismob in MainClass.mobs)
+                {
+                    int mob_x = thismob.position.x;
+                    int mob_y = thismob.position.y;
+                    int mob_z = thismob.position.z;
+                    foreach (user thisuser in MainClass.allusers)
+                    {
+                        int user_x = thisuser.position.x;
+                        int user_y = thisuser.position.y;
+                        int user_z = thisuser.position.z;
+                        if (MainClass.inRange(mob_x, user_x,thismob.attackrange) && MainClass.inRange(mob_y, user_y, thismob.attackrange) && MainClass.inRange(mob_z, user_z, thismob.attackrange))
+                        {
+                            //thisuser.write("MOB " + thismob.vnum + " IN RANGE.");
+							if(thismob.hate.Contains(thisuser))
+							{
+								if(thismob.nextshot < MainClass.unixtime())
+								{
+									thismob.nextshot = MainClass.unixtime() + thismob.firerate;
+									thisuser.write("ATTACK;"
+									               + thismob.id + ";"
+									               + thismob.vnum + ";"
+									               + thisuser.user_id + ";"
+									               + thismob.firespeed
+									               );
+								}
+							}
+                        }
+                    }
+                }
+                Thread.Sleep(5);
+            }
         }
     }
     #endregion
@@ -269,18 +331,21 @@ namespace gamesrv
         public static string version;
         public static Random rand = new Random();
 
-        public static System.IO.FileStream logstream;
+        public static volatile System.IO.FileStream logstream;
 
         public static TcpListener tcpListener;
-        public static Thread listenThread;
-        public static ASCIIEncoding encoder = new ASCIIEncoding();
-        public static sql db = new sql();
+        public static volatile Thread listenThread;
+        public static volatile ASCIIEncoding encoder = new ASCIIEncoding();
+        public static volatile sql db = new sql();
 
         public static NetworkStream[] users = new NetworkStream[4096];
         public static int user_count = 0;
-        public static List<user> allusers = new List<user>();
+        public static volatile List<user> allusers = new List<user>();
 
-        public static List<mob> mobs = new List<mob>();
+        public static volatile List<mob> mobs = new List<mob>();
+		public static volatile int mobcount = 0;
+		
+		public static volatile bool online = true;
 
         public static int unixtime()
         {
@@ -319,6 +384,29 @@ namespace gamesrv
                 }
             }
             return new user(0, null);
+        }
+
+        public static List<mob> findMobsByPos(int x, int y, int z)
+        {
+            List<mob> moblist = new List<mob>();
+            foreach (mob thismob in mobs)
+            {
+                if (inRange(x, thismob.position.x) && inRange(y, thismob.position.y) && inRange(z, thismob.position.z))
+                {
+                    moblist.Add(thismob);
+                }
+            }
+            return moblist;
+        }
+
+        public static bool inRange(int i_1, int i_2, int range)
+        {
+            if (((i_1 + range) >= i_2) && (i_1 - range) <= i_2) return true; else return false;
+        }
+
+        public static bool inRange(int i1, int i2)
+        {
+            return inRange(i1, i2, 10);
         }
 
         public static void writeToStream(NetworkStream stream, string text)
@@ -389,8 +477,8 @@ namespace gamesrv
                 {
                     if (str.Trim() != "")
                     {
-                        say("[   <<<   ] [ " + thisuser.user_id + " " + thisuser.data.nick + " ]: " + str);
-                        thisuser.log("[   <<<   ] [ " + thisuser.user_id + " " + thisuser.data.nick + " ]: " + str);
+                        say("[   <<<   ] [ " + thisuser.user_id + " " + thisuser.data.nick + " (" + thisuser.data.adminlevel + ") ]: " + str);
+                        thisuser.log("[   <<<   ] [ " + thisuser.user_id + " " + thisuser.data.nick + " (" + thisuser.data.adminlevel + ") ]: " + str);
                         string[] cmd = str.Split(';');
                         cmd[0] = cmd[0].ToUpper();
                 #endregion
@@ -411,7 +499,7 @@ namespace gamesrv
                             {
                                 if (user != null && user.stream != null)
                                 {
-                                    writeToStream(user.stream, "NOTICE;" + str2);
+                                    user.write("NOTICE;" + str2);
                                 }
                             }
                         }
@@ -421,7 +509,7 @@ namespace gamesrv
                         #region ping/pong
                         else if (cmd[0] == "PING")
                         {
-                            writeToStream(thisuser.stream, "PONG");
+                            thisuser.write("PONG");
                         }
                         else if (cmd[0] == "PONG")
                         {
@@ -466,15 +554,44 @@ namespace gamesrv
                         }
                         #endregion
 
+                        #region mobs
+                        else if (cmd[0] == "FLUSH")
+                        {
+                            if (cmd.Length > 1)
+                            {
+                                if (cmd[1] == "MOBS")
+                                {
+                                    List<mob> list = findMobsByPos(thisuser.position.x, thisuser.position.y, thisuser.position.z);
+                                    foreach (mob thismob in list)
+                                    {
+                                        thisuser.write("SPAWN;OK;"
+										               + thismob.id + ";"
+                                                       + thismob.vnum + ";"
+                                                       + thismob.position.x + ";"
+                                                       + thismob.position.y + ";"
+                                                       + thismob.position.z);
+                                    }
+                                }
+                            }
+                        }
+                        #endregion
+
                         #region admin level 2+
                         else if ((config.testserver == true || thisuser.data.adminlevel > 1) && cmd[0] == "WARP")
                         {
                             if (cmd.Length > 0)
                             {
-                                thisuser.position.x = Convert.ToInt32(cmd[1]);
-                                thisuser.position.y = Convert.ToInt32(cmd[2]);
-                                thisuser.position.z = Convert.ToInt32(cmd[3]);
-                                thisuser.write("WARP;OK;" + thisuser.position.x + ";" + thisuser.position.y + ";" + thisuser.position.z);
+								try
+								{
+	                                thisuser.position.x = Convert.ToInt32(cmd[1]);
+	                                thisuser.position.y = Convert.ToInt32(cmd[2]);
+	                                thisuser.position.z = Convert.ToInt32(cmd[3]);
+	                                thisuser.write("WARP;OK;" + thisuser.position.x + ";" + thisuser.position.y + ";" + thisuser.position.z);
+								}
+								catch
+								{
+									thisuser.write("WARP;ERROR;22;WARP <X> <Y> [<Z>]");
+								}
                             }
                             else
                             {
@@ -484,22 +601,77 @@ namespace gamesrv
 
                         else if ((config.testserver == true || thisuser.data.adminlevel > 1) && cmd[0] == "SPAWN")
                         {
-                            if (cmd.Length > 2)
+                            if (cmd.Length > 1)
                             {
-                                int count = Convert.ToInt32(cmd[2]);
+								int count = 1;
+								int vnum = 0;
+                                if (cmd.Length > 2)
+                                {
+                                    count = Convert.ToInt32(cmd[2]);
+                                }
+                                try
+                                {
+                                    vnum = Convert.ToInt32(cmd[1]);
+                                }
+                                catch
+                                {
+                                }
+                                MySqlDataReader res = sql.game.select("SELECT * FROM ship_proto WHERE vnum = '" + vnum + "'");
+                                if (res.Read())
+                                {
+									for(int i = 0;i < count;i++)
+									{
+	                                    int x = rand.Next(thisuser.position.x - 10, thisuser.position.x + 10);
+	                                    int y = rand.Next(thisuser.position.y - 10, thisuser.position.y + 10);
+	                                    int z = rand.Next(thisuser.position.z - 10, thisuser.position.z + 10);
+	                                    mob thismob = new mob(Convert.ToInt32(res["vnum"]),res);
+	                                    thismob.warp(x, y, z);
+	                                    gamesrv.MainClass.mobs.Add(thismob);
+										int id = thismob.id;
+	                                    thisuser.write("SPAWN;OK;" + id + ";" + res["vnum"] + ";" + x + ";" + y + ";" + z);
+									}
+                                }
+                                else
+                                {
+                                    thisuser.write("SPAWN;ERROR;40");
+                                }
                             }
-                            int mob = Convert.ToInt32(cmd[1]);
-                            MySqlDataReader res = sql.game.select("SELECT * FROM ship_proto WHERE vnum = '" + cmd[1] + "'");
-                            res.Read();
-                            int x = rand.Next(thisuser.position.x - 10, thisuser.position.x + 10);
-                            int y = rand.Next(thisuser.position.y - 10, thisuser.position.y + 10);
-                            int z = rand.Next(thisuser.position.z - 10, thisuser.position.z + 10);
-                            mob thismob = new mob(Convert.ToInt32(res["vnum"]));
-                            thismob.warp(x, y, z);
-                            gamesrv.MainClass.mobs.Add(thismob);
-                            thisuser.write("SPAWN;OK;" + res["vnum"] + ";" + x + ";" + y + ";" + z);
+                            else
+                            {
+                                thisuser.write("SPAWN;ERROR;22");
+                            }
                         }
+						
+						else if((config.testserver == true || thisuser.data.adminlevel > 1) && cmd[0] == "AGGR")
+						{
+							if(cmd.Length < 1)
+							{
+								List<mob> list = findMobsByPos(thisuser.position.x, thisuser.position.y, thisuser.position.z);
+								foreach(mob curmob in list)
+								{
+									curmob.hate.Add(thisuser);
+								}
+							}
+							else
+							{
+								int id = Convert.ToInt32(cmd[1]);
+								foreach(mob curmob in mobs)
+								{
+									if(curmob.id == id)
+									{
+										curmob.hate.Add(thisuser);
+									}
+								}
+							}
+						}
                         #endregion
+						
+						#region admin level 3+
+						else if((config.testserver == true || thisuser.data.adminlevel > 2) && cmd[0] == "SHUTDOWN")
+						{
+							MainClass.online = false;
+						}
+						#endregion
 
                         #region debug
                         else if (config.debug == true)
@@ -507,13 +679,13 @@ namespace gamesrv
                             if (cmd[0] == "USER_ID")
                             {
                                 thisuser.user_id = Convert.ToInt32(cmd[1]);
-                                writeToStream(thisuser.stream, "USER_ID;OK");
+                                thisuser.write("USER_ID;OK");
                             }
 
                             else if (cmd[0] == "NICK")
                             {
                                 thisuser.data.nick = cmd[1];
-                                writeToStream(thisuser.stream, "NICK;OK");
+                                thisuser.write("NICK;OK");
                             }
 
                             else if (cmd[0] == "POS")
@@ -529,6 +701,26 @@ namespace gamesrv
                                 thisuser.identified = true;
                                 user user = findUserByNick(cmd[1]);
                                 user.logstream = thisuser.stream;
+                            }
+
+                            else if (cmd[0] == "MAP_PIC")
+                            {
+                                for (int x = -10; x < 10; x++)
+                                {
+                                    for (int y = -10; y < 10; y++)
+                                    {
+                                        int mob_count = 0;
+                                        foreach (mob thismob in mobs)
+                                        {
+                                            if (thismob.position.x == x && thismob.position.y == y)
+                                            {
+                                                mob_count++;
+                                            }
+                                        }
+                                        Console.Write(mob_count);
+                                    }
+                                    Console.Write("\r\n");
+                                }
                             }
 
                             else
@@ -561,10 +753,10 @@ namespace gamesrv
         {
             string curtime = DateTime.Now.ToString();
             string writestring = "[ " + curtime + " ]: " + str + "\r\n";
-            if(config.debug == true)
-			{
-				Console.WriteLine(writestring.Trim());
-			}
+            if (config.debug == true)
+            {
+                Console.WriteLine(writestring.Trim());
+            }
             log(writestring);
         }
 
@@ -605,7 +797,7 @@ namespace gamesrv
                 say("FAILED TO CONNECT PLAYER DATABASE: " + e.Message);
                 return;
             }
-            say("PLAYER CONNECTED");
+            say("PLAYER DB\t\t\tREADY");
             try
             {
                 gamesrv.sql.game.c.Open();
@@ -615,21 +807,53 @@ namespace gamesrv
                 say("FAILED TO CONNECT GAME DATABASE: " + e.Message);
                 return;
             }
-            say("GAME CONNECTED");
-            say("CACHING GAME DATABASE");
-            //cacheGameDB();
-            say("DONE.");
+            say("GAME DB\t\t\tREADY");
             tcpListener = new TcpListener(IPAddress.Any, 3000);
             listenThread = new Thread(new ThreadStart(ListenForClients));
             listenThread.Start();
-            say("LISTEN THREAD - READY");
+            say("LISTEN THREAD\t\t\tREADY");
+            Thread npc_thread = new Thread(new ThreadStart(new npc_control().start));
+            npc_thread.Start();
+            say("NPC CONTROL\t\t\tREADY");
+			Thread ping_thread;
             if (config.pingtimeout > 0)
             {
-                Thread ping_thread = new Thread(new System.Threading.ThreadStart(gamesrv.pingbot.start));
+                ping_thread = new Thread(new System.Threading.ThreadStart(gamesrv.pingbot.start));
                 ping_thread.Start();
-                say("PING THREAD READY");
+                say("PING THREAD\t\t\tREADY");
             }
-            say("SERVER UP AND RUNNING - READY");
+            say("GAME SERVER READY\t\tREADY");
+			while(true)
+			{
+				if(online == false)
+				{
+					for(int i = 10;i > 0; i--)
+					{
+						foreach(user thisuser in allusers)
+						{
+							thisuser.write("SHUTDOWN;50;" + i);
+						}
+						Thread.Sleep(1000);
+					}
+					foreach(user thisuser in allusers)
+					{
+						thisuser.write("SHUTDOWN;51");
+					}
+					listenThread.Abort();
+					listenThread.Interrupt();
+					npc_thread.Abort();
+					npc_thread.Interrupt();
+					try
+					{
+						ping_thread.Abort();
+						ping_thread.Interrupt();
+					}
+					catch(Exception e){}
+					say("SHUTDOWN COMPLETE AT " + unixtime());
+					Thread.CurrentThread.Abort();
+					Thread.CurrentThread.Interrupt();
+				}
+			}
         }
 
         #endregion
