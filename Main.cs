@@ -1,4 +1,3 @@
-#region includes
 using System;
 using System.Text;
 using System.Net.Sockets;
@@ -9,101 +8,9 @@ using System.Data;
 using System.Collections.Generic;
 using MySql.Data.MySqlClient;
 using LuaInterface;
-//using Lua511;
-#endregion
 
 namespace gamesrv
 {
-    #region config
-    public class config
-    {
-        public class mysql
-        {
-            public class player
-            {
-                public const string config = "SERVER=192.168.56.101;" +
-                                                "DATABASE=gamesrv_player;" +
-                                                "UID=lunatic3;" +
-                                                "PASSWORD=lalaftw#!;";
-                public const string dbname = "gamesrv_player";
-            }
-            public class game
-            {
-                public const string config = "SERVER=192.168.56.101;" +
-                                                "DATABASE=gamesrv_game;" +
-                                                "UID=lunatic3;" +
-                                                "PASSWORD=lalaftw#!;";
-                public const string dbname = "gamesrv_game";
-            }
-        }
-        public class locale
-        {
-            public const string welcome = "WELCOME";
-            public const string bye = "BYE";
-        }
-        public class info
-        {
-            public static int major_version = 0;
-            public static int minor_version = 2;
-            public static int sub_version = 1;
-            public static string version = major_version + "."
-                                                + minor_version + "."
-                                                + sub_version;
-            public static List<string> masternames = new List<string>{"Anohros", "xenor"};
-        }
-        public static int pingtimeout = 0;
-        public static int logintimeout = -1;
-        public static bool debug = true;
-        public static bool testserver = true;
-    }
-    #endregion
-
-    #region sql
-    class sql
-    {
-        //public static MySqlCommand cmd = new MySqlCommand();
-        public static MySqlDataReader reader;
-        public class player
-        {
-            public static MySqlConnection c = new MySqlConnection(config.mysql.player.config);
-            public static MySqlDataReader select(string query)
-            {
-				try { sql.reader.Close(); }
-                catch { }
-				//MySqlCommand cmd = new MySqlCommand();
-                MySqlCommand cmd = c.CreateCommand();
-                cmd.CommandText = query;
-                reader = cmd.ExecuteReader();
-                return reader;
-            }
-			public static int insert_id()
-			{
-				MySqlDataReader res = select("SELECT LAST_INSERT_ID()");
-				res.Read();
-				return res.GetInt32(0);
-			}
-        }
-        public class game
-        {
-            public static MySqlConnection c = new MySqlConnection(config.mysql.game.config);
-            public static MySqlDataReader select(string query)
-            {
-				try { sql.reader.Close(); }
-                catch { }
-                MySqlCommand cmd = c.CreateCommand();
-                cmd.CommandText = query;
-                reader = cmd.ExecuteReader();
-                return reader;
-            }
-			public static int insert_id()
-			{
-				MySqlDataReader res = select("SELECT LAST_INSERT_ID()");
-				return (int)res.GetUInt32(0);
-			}
-        }
-    }
-    #endregion
-
     #region game
     public class game
     {
@@ -113,290 +20,7 @@ namespace gamesrv
         }
     }
     #endregion
-
-    #region quest
-    public class quest
-    {
-		
-		public int user_id;
-		public user user;
-		
-		public class pc
-		{
-			public void get_name()
-			{
-				
-			}
-		}
-		
-        public quest(int user_id, user user)
-        {
-			this.user_id = user_id;
-			this.user = user;
-        }
-	}
-    #endregion
-
-    #region user
-    public class user
-    {
-        public int user_id;
-        public int logintime;
-        public NetworkStream stream;
-        public NetworkStream logstream;
-        public int lastpong = gamesrv.MainClass.unixtime();
-        public bool identified = false;
-        public bool identping = false;
-        public class data_class
-        {
-            public string nick = "";
-            public int adminlevel = 0;
-			public bool developer = false;
-        }
-        public class position_class
-        {
-            public int x;
-            public int y;
-            public int z;
-        }
-        public data_class data = new data_class();
-        public position_class position = new position_class();
-		public quest quest;
-
-        public void write(string str)
-        {
-            byte[] buffer = new byte[str.Length];
-            buffer = gamesrv.MainClass.encoder.GetBytes(str.ToString() + "\r\n");
-            try
-            {
-                this.stream.Write(buffer, 0, buffer.Length);
-                gamesrv.MainClass.say("[   >>>   ] [ " + this.user_id + " " + this.data.nick + " (" + this.data.adminlevel + ") ]: " + str);
-                this.log("[   >>>   ] [ " + this.user_id + " " + this.data.nick + " (" + this.data.adminlevel + ") ]: " + str);
-            }
-            catch
-            {
-                Console.WriteLine("ERROR WHILE WRITING TO " + this.user_id);
-                MainClass.closeConn(this);
-            }
-        }
-
-        public void log(string str)
-        {
-            gamesrv.MainClass.writeToStream(this.logstream, str);
-        }
-
-        public user(int user_id, NetworkStream stream)
-        {
-            this.user_id = user_id;
-            this.stream = stream;
-			this.quest = new quest(user_id,this);
-            int time = gamesrv.MainClass.unixtime();
-            gamesrv.MainClass.say("[ NEWUSER ] [ " + user_id + " ]: TIME: " + time);
-        }
-
-        public void identAs(string login, string passwd)
-        {
-            if (this.user_id != 0)
-            {
-                this.write("LOGIN;ERROR;10");
-            }
-            else
-            {
-                string qry = "SELECT * FROM " + config.mysql.player.dbname + ".accounts WHERE login = '" + login + "' AND passwd = '" + passwd + "'";
-                MySqlDataReader reader = gamesrv.sql.player.select(qry);
-                if (reader.Read())
-                {
-                    this.identified = true;
-                    this.user_id = Convert.ToInt32(reader["account_id"].ToString());
-                    this.data.nick = reader["nick"].ToString();
-                    this.data.adminlevel = Convert.ToInt32(reader["adminlevel"].ToString());
-                    this.write("LOGIN;OK");
-                }
-                else
-                {
-                    this.write("LOGIN;ERROR;12");
-                }
-                reader.Close();
-            }
-        }
-    }
-    #endregion
-
-    #region ping/pong
-    public class pingbot
-    {
-        public static void start()
-        {
-            while (true)
-            {
-                System.Threading.Thread.Sleep(config.pingtimeout);
-                int curtime = gamesrv.MainClass.unixtime();
-                try
-                {
-                    for (int i = 0; i < gamesrv.MainClass.allusers.Count; i++)
-                    {
-                        user thisuser = gamesrv.MainClass.allusers[i];
-                        if (thisuser != null && thisuser.stream != null)
-                        {
-                            int timespan = (config.pingtimeout / 1000) - (curtime - thisuser.lastpong);
-                            if (timespan < 0)
-                            {
-                                thisuser.write("ERROR;21");
-                                gamesrv.MainClass.closeConn(thisuser);
-                            }
-                            else
-                            {
-                                thisuser.write("PING");
-                            }
-                            if (thisuser.identified == false && thisuser.identping == true)
-                            {
-                                thisuser.write("ERROR;13");
-                                gamesrv.MainClass.closeConn(thisuser);
-                            }
-                            else if (thisuser.identified == false && thisuser.identping == false)
-                            {
-                                thisuser.identping = true;
-                            }
-                        }
-                    }
-                }
-                catch { }
-            }
-        }
-    }
-    #endregion
-
-    #region Monster Class
-    class mob
-    {
-        public class position_class
-        {
-            public int x = 0;
-            public int y = 0;
-            public int z = 0;
-        }
-        public position_class position = new position_class();
-		
-		public int id = 0;
-        public int vnum = 0;
-		public int attackrange = 0;
-		public int firerate = 0;
-		public int firespeed = 0;
-		public int nextshot = 0;
-		
-		public List<user> hate = new List<user>();
-		
-        public mob(int vnum, MySqlDataReader res)
-        {
-            this.vnum = vnum;
-			MainClass.mobcount++;
-			this.id = MainClass.mobcount;
-			this.attackrange = Convert.ToInt32(res["attackrange"].ToString());
-			this.firerate = Convert.ToInt32(res["firerate"].ToString());
-			this.firespeed = Convert.ToInt32(res["firespeed"].ToString());
-        }
-		
-        public void warp(int x, int y, int z)
-        {
-            this.position.x = x;
-            this.position.y = y;
-            this.position.z = z;
-        }
-    }
-    #endregion
-	
-	class items
-	{
-		public static void flush_items(user thisuser)
-		{
-			foreach(item thisitem in MainClass.items)
-			{
-				if(MainClass.inRange(thisitem.position.x,thisuser.position.x) && 
-				   MainClass.inRange(thisitem.position.y,thisuser.position.y) && 
-				   MainClass.inRange(thisitem.position.z,thisuser.position.z))
-				{
-					thisuser.write("ITEM;OK;" + thisitem.item_id + ";" + thisitem.vnum);
-				}
-			}
-		}
-	}
-	
-	#region Items
-	class item
-	{
-		public class position_class
-		{
-			public int x;
-			public int y;
-			public int z;
-		}
-		public position_class position = new position_class();
-		
-		public int item_id;
-		public int vnum;
-		public int owner_id;
-		public user owner;
-		
-		public item (int vnum, int x, int y, int z)
-		{
-			this.position.x = x;
-			this.position.y = y;
-			this.position.z = z;
-			this.vnum = vnum;
-			this.item_id = sql.player.insert_id();
-		}
-		
-		public item (int vnum, user thisuser)
-		{
-			this.vnum = vnum;
-			this.owner = thisuser;
-			this.owner_id = thisuser.user_id;
-		}
-	}
-	#endregion
-	
-    #region NPC Control
-    class npc_control
-    {
-        public void start()
-        {
-            while (true)
-            {
-                foreach (mob thismob in MainClass.mobs)
-                {
-                    int mob_x = thismob.position.x;
-                    int mob_y = thismob.position.y;
-                    int mob_z = thismob.position.z;
-                    foreach (user thisuser in MainClass.allusers)
-                    {
-                        int user_x = thisuser.position.x;
-                        int user_y = thisuser.position.y;
-                        int user_z = thisuser.position.z;
-                        if (MainClass.inRange(mob_x, user_x,thismob.attackrange) && MainClass.inRange(mob_y, user_y, thismob.attackrange) && MainClass.inRange(mob_z, user_z, thismob.attackrange))
-                        {
-                            //thisuser.write("MOB " + thismob.vnum + " IN RANGE.");
-							if(thismob.hate.Contains(thisuser))
-							{
-								if(thismob.nextshot < MainClass.unixtime())
-								{
-									thismob.nextshot = MainClass.unixtime() + thismob.firerate;
-									thisuser.write("ATTACK;"
-									               + thismob.id + ";"
-									               + thismob.vnum + ";"
-									               + thisuser.user_id + ";"
-									               + thismob.firespeed
-									               );
-								}
-							}
-                        }
-                    }
-                }
-                Thread.Sleep(5);
-            }
-        }
-    }
-    #endregion
-
+    
     class MainClass
     {
         #region sinnlos
@@ -539,7 +163,158 @@ namespace gamesrv
 
         #endregion
 
-        public static void HandleClientComm(object client)
+        public static void log(string str)
+        {
+            byte[] bytes = encoder.GetBytes(str);
+            logstream.Write(bytes, 0, bytes.Length);
+            logstream.Flush();
+        }
+
+        public static void say(string str)
+        {
+            string curtime = DateTime.Now.ToString();
+            string writestring = "[ " + curtime + " ]: " + str + "\r\n";
+            if (config.debug == true)
+            {
+                Console.WriteLine(writestring.Trim());
+            }
+            log(writestring);
+        }
+
+        public static void ListenForClients()
+        {
+            tcpListener.Start();
+            while (true)
+            {
+                TcpClient client = tcpListener.AcceptTcpClient();
+                Thread clientThread = new Thread(new ParameterizedThreadStart(HandleClientComm));
+                clientThread.Start(client);
+            }
+        }
+
+        public static void cacheGameDB()
+        {
+            MySqlDataReader reader = gamesrv.sql.game.select("SELECT * FROM ship_proto");
+            while (reader.Read())
+            {
+                gamesrv.game.proto.ship[Convert.ToInt32(reader["vnum"].ToString())] = reader.ToString();
+            }
+        }
+
+        public static void Main(string[] args)
+        {
+            version = config.info.version;
+            int curtime = unixtime();
+            if (!System.IO.Directory.Exists("./syslog/")) System.IO.Directory.CreateDirectory("./syslog/");
+            logstream = System.IO.File.Create("./syslog/" + curtime + ".log");
+            say("Using Syslog: ./syslog/" + curtime + ".log");
+            say("Game Server v" + version + " starting up...");
+            try
+            {
+                gamesrv.sql.player.c.Open();
+            }
+            catch (Exception e)
+            {
+                say("FAILED TO CONNECT PLAYER DATABASE: " + e.Message);
+                return;
+            }
+            say("PLAYER DB\t\t\tREADY");
+            try
+            {
+                gamesrv.sql.game.c.Open();
+            }
+            catch (Exception e)
+            {
+                say("FAILED TO CONNECT GAME DATABASE: " + e.Message);
+                return;
+            }
+            say("GAME DB\t\t\tREADY");
+            tcpListener = new TcpListener(IPAddress.Any, 3000);
+            listenThread = new Thread(new ThreadStart(ListenForClients));
+            listenThread.Start();
+            say("LISTEN THREAD\t\t\tREADY");
+            Thread npc_thread = new Thread(new ThreadStart(new npc_control().start));
+            npc_thread.Start();
+            say("NPC CONTROL\t\t\tREADY");
+			Thread ping_thread;
+            if (config.pingtimeout > 0)
+            {
+                ping_thread = new Thread(new System.Threading.ThreadStart(gamesrv.pingbot.start));
+                ping_thread.Start();
+                say("PING THREAD\t\t\tREADY");
+            }
+            say("GAME SERVER READY\t\tREADY");
+			while(true)
+			{
+				if(online == false)
+				{
+					bool fail;
+					List<user> written;
+					for(int i = 10;i > 0; i--)
+					{
+						fixUsers();
+						fail = true;
+						written = new List<user>();
+						while(fail == true)
+						{
+							try
+							{
+								fail = false;
+								foreach(user thisuser in allusers)
+								{
+									if(!written.Contains(thisuser))
+									{
+										thisuser.write("SHUTDOWN;50;" + i);
+										written.Add(thisuser);
+									}
+								}
+								Thread.Sleep(1000);
+							}
+							catch
+							{
+								fail = true;
+							}
+						}
+					}
+					fail = true;
+					written = new List<user>();
+					while(fail == true)
+					{
+						try
+						{
+							fail = false;
+							foreach(user thisuser in allusers)
+							{
+								if(!written.Contains(thisuser))
+								{
+									thisuser.write("SHUTDOWN;51");
+									closeConn(thisuser);
+								}
+							}
+						}
+						catch
+						{
+							fail = true;
+						}
+					}
+					listenThread.Abort();
+					listenThread.Interrupt();
+					npc_thread.Abort();
+					npc_thread.Interrupt();
+					try
+					{
+						ping_thread.Abort();
+						ping_thread.Interrupt();
+					}
+					catch{}
+					say("SHUTDOWN COMPLETE AT " + unixtime());
+					Thread.CurrentThread.Abort();
+					Thread.CurrentThread.Interrupt();
+				}
+			}
+        }
+		
+		public static void HandleClientComm(object client)
         {
             #region accept user
             TcpClient tcpClient = (TcpClient)client;
@@ -972,167 +747,11 @@ namespace gamesrv
                         {
                             thisuser.write("ERROR;20");
                         }
+						#endregion
                     }
                 }
-                        #endregion
             }
-
             tcpClient.Close();
         }
-
-        #region acceptshit
-
-        public static void log(string str)
-        {
-            byte[] bytes = encoder.GetBytes(str);
-            logstream.Write(bytes, 0, bytes.Length);
-            logstream.Flush();
-        }
-
-        public static void say(string str)
-        {
-            string curtime = DateTime.Now.ToString();
-            string writestring = "[ " + curtime + " ]: " + str + "\r\n";
-            if (config.debug == true)
-            {
-                Console.WriteLine(writestring.Trim());
-            }
-            log(writestring);
-        }
-
-        public static void ListenForClients()
-        {
-            tcpListener.Start();
-            while (true)
-            {
-                TcpClient client = tcpListener.AcceptTcpClient();
-                Thread clientThread = new Thread(new ParameterizedThreadStart(HandleClientComm));
-                clientThread.Start(client);
-            }
-        }
-
-        public static void cacheGameDB()
-        {
-            MySqlDataReader reader = gamesrv.sql.game.select("SELECT * FROM ship_proto");
-            while (reader.Read())
-            {
-                gamesrv.game.proto.ship[Convert.ToInt32(reader["vnum"].ToString())] = reader.ToString();
-            }
-        }
-
-        public static void Main(string[] args)
-        {
-            version = config.info.version;
-            int curtime = unixtime();
-            if (!System.IO.Directory.Exists("./syslog/")) System.IO.Directory.CreateDirectory("./syslog/");
-            logstream = System.IO.File.Create("./syslog/" + curtime + ".log");
-            say("Using Syslog: ./syslog/" + curtime + ".log");
-            say("Game Server v" + version + " starting up...");
-            try
-            {
-                gamesrv.sql.player.c.Open();
-            }
-            catch (Exception e)
-            {
-                say("FAILED TO CONNECT PLAYER DATABASE: " + e.Message);
-                return;
-            }
-            say("PLAYER DB\t\t\tREADY");
-            try
-            {
-                gamesrv.sql.game.c.Open();
-            }
-            catch (Exception e)
-            {
-                say("FAILED TO CONNECT GAME DATABASE: " + e.Message);
-                return;
-            }
-            say("GAME DB\t\t\tREADY");
-            tcpListener = new TcpListener(IPAddress.Any, 3000);
-            listenThread = new Thread(new ThreadStart(ListenForClients));
-            listenThread.Start();
-            say("LISTEN THREAD\t\t\tREADY");
-            Thread npc_thread = new Thread(new ThreadStart(new npc_control().start));
-            npc_thread.Start();
-            say("NPC CONTROL\t\t\tREADY");
-			Thread ping_thread;
-            if (config.pingtimeout > 0)
-            {
-                ping_thread = new Thread(new System.Threading.ThreadStart(gamesrv.pingbot.start));
-                ping_thread.Start();
-                say("PING THREAD\t\t\tREADY");
-            }
-            say("GAME SERVER READY\t\tREADY");
-			while(true)
-			{
-				if(online == false)
-				{
-					bool fail;
-					List<user> written;
-					for(int i = 10;i > 0; i--)
-					{
-						fixUsers();
-						fail = true;
-						written = new List<user>();
-						while(fail == true)
-						{
-							try
-							{
-								fail = false;
-								foreach(user thisuser in allusers)
-								{
-									if(!written.Contains(thisuser))
-									{
-										thisuser.write("SHUTDOWN;50;" + i);
-										written.Add(thisuser);
-									}
-								}
-								Thread.Sleep(1000);
-							}
-							catch
-							{
-								fail = true;
-							}
-						}
-					}
-					fail = true;
-					written = new List<user>();
-					while(fail == true)
-					{
-						try
-						{
-							fail = false;
-							foreach(user thisuser in allusers)
-							{
-								if(!written.Contains(thisuser))
-								{
-									thisuser.write("SHUTDOWN;51");
-									closeConn(thisuser);
-								}
-							}
-						}
-						catch
-						{
-							fail = true;
-						}
-					}
-					listenThread.Abort();
-					listenThread.Interrupt();
-					npc_thread.Abort();
-					npc_thread.Interrupt();
-					try
-					{
-						ping_thread.Abort();
-						ping_thread.Interrupt();
-					}
-					catch{}
-					say("SHUTDOWN COMPLETE AT " + unixtime());
-					Thread.CurrentThread.Abort();
-					Thread.CurrentThread.Interrupt();
-				}
-			}
-        }
-
-        #endregion
     }
 }

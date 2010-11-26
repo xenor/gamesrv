@@ -51,6 +51,14 @@
   <ItemGroup>
     <Compile Include="Main.cs" />
     <Compile Include="AssemblyInfo.cs" />
+    <Compile Include="items.cs" />
+    <Compile Include="sql.cs" />
+    <Compile Include="config.cs" />
+    <Compile Include="quest.cs" />
+    <Compile Include="user.cs" />
+    <Compile Include="pingbot.cs" />
+    <Compile Include="mob.cs" />
+    <Compile Include="npc_control.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>
