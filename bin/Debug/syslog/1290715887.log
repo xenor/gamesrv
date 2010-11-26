@@ -1,0 +1,10 @@
+[ 25.11.2010 20:11:27 ]: Using Syslog: ./syslog/1290715887.log
+[ 25.11.2010 20:11:27 ]: Game Server v0.2.1 starting up...
+[ 25.11.2010 20:11:32 ]: PLAYER DB			READY
+[ 25.11.2010 20:11:37 ]: GAME DB			READY
+[ 25.11.2010 20:11:37 ]: LISTEN THREAD			READY
+[ 25.11.2010 20:11:37 ]: NPC CONTROL			READY
+[ 25.11.2010 20:11:37 ]: GAME SERVER READY		READY
+[ 25.11.2010 20:11:38 ]: [ NEWUSER ] [ 0 ]: TIME: 1290715899
+[ 25.11.2010 20:11:38 ]: [   >>>   ] [ 0  ]: WELCOME
+[ 25.11.2010 20:11:40 ]: [   <<<   ] [ 0  (0) ]: item;42

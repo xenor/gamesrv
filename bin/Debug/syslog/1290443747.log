@@ -1,0 +1,5 @@
+[ 22.11.2010 16:35:46 ]: Using Syslog: ./syslog/1290443747.log
+[ 22.11.2010 16:35:46 ]: Game Server v0.2.1 starting up...
+[ 22.11.2010 16:35:51 ]: PLAYER DB			READY
+[ 22.11.2010 16:35:55 ]: GAME DB			READY
+[ 22.11.2010 16:35:55 ]: LISTEN THREAD			READY

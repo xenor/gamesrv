@@ -1,0 +1,3 @@
+[ 25.11.2010 18:25:12 ]: Using Syslog: ./syslog/1290709513.log
+[ 25.11.2010 18:25:12 ]: Game Server v0.2.1 starting up...
+[ 25.11.2010 18:25:28 ]: FAILED TO CONNECT PLAYER DATABASE: Unable to connect to any of the specified MySQL hosts.

@@ -8,6 +8,8 @@ using System.Net;
 using System.Data;
 using System.Collections.Generic;
 using MySql.Data.MySqlClient;
+using LuaInterface;
+//using Lua511;
 #endregion
 
 namespace gamesrv
@@ -39,7 +41,7 @@ namespace gamesrv
             public const string welcome = "WELCOME";
             public const string bye = "BYE";
         }
-        public class info			// JEAH LINE 42 <3
+        public class info
         {
             public static int major_version = 0;
             public static int minor_version = 2;
@@ -47,7 +49,7 @@ namespace gamesrv
             public static string version = major_version + "."
                                                 + minor_version + "."
                                                 + sub_version;
-            public static string[] masternames = { "Anohros", "xenor" };
+            public static List<string> masternames = new List<string>{"Anohros", "xenor"};
         }
         public static int pingtimeout = 0;
         public static int logintimeout = -1;
@@ -59,31 +61,45 @@ namespace gamesrv
     #region sql
     class sql
     {
-        public static MySqlCommand cmd = new MySqlCommand();
+        //public static MySqlCommand cmd = new MySqlCommand();
         public static MySqlDataReader reader;
         public class player
         {
             public static MySqlConnection c = new MySqlConnection(config.mysql.player.config);
             public static MySqlDataReader select(string query)
             {
+				try { sql.reader.Close(); }
+                catch { }
+				//MySqlCommand cmd = new MySqlCommand();
                 MySqlCommand cmd = c.CreateCommand();
                 cmd.CommandText = query;
-                MySqlDataReader reader = cmd.ExecuteReader();
+                reader = cmd.ExecuteReader();
                 return reader;
             }
+			public static int insert_id()
+			{
+				MySqlDataReader res = select("SELECT LAST_INSERT_ID()");
+				res.Read();
+				return res.GetInt32(0);
+			}
         }
         public class game
         {
             public static MySqlConnection c = new MySqlConnection(config.mysql.game.config);
             public static MySqlDataReader select(string query)
             {
-                try { sql.reader.Close(); }
+				try { sql.reader.Close(); }
                 catch { }
-                sql.cmd = c.CreateCommand();
-                sql.cmd.CommandText = query;
-                sql.reader = sql.cmd.ExecuteReader();
+                MySqlCommand cmd = c.CreateCommand();
+                cmd.CommandText = query;
+                reader = cmd.ExecuteReader();
                 return reader;
             }
+			public static int insert_id()
+			{
+				MySqlDataReader res = select("SELECT LAST_INSERT_ID()");
+				return (int)res.GetUInt32(0);
+			}
         }
     }
     #endregion
@@ -99,15 +115,26 @@ namespace gamesrv
     #endregion
 
     #region quest
-    class quest
+    public class quest
     {
-        public quest()
+		
+		public int user_id;
+		public user user;
+		
+		public class pc
+		{
+			public void get_name()
+			{
+				
+			}
+		}
+		
+        public quest(int user_id, user user)
         {
-            /*Lua lua = new Lua();
-            lua.DoFile("test.quest");
-                */
+			this.user_id = user_id;
+			this.user = user;
         }
-    }
+	}
     #endregion
 
     #region user
@@ -124,6 +151,7 @@ namespace gamesrv
         {
             public string nick = "";
             public int adminlevel = 0;
+			public bool developer = false;
         }
         public class position_class
         {
@@ -133,6 +161,7 @@ namespace gamesrv
         }
         public data_class data = new data_class();
         public position_class position = new position_class();
+		public quest quest;
 
         public void write(string str)
         {
@@ -160,6 +189,7 @@ namespace gamesrv
         {
             this.user_id = user_id;
             this.stream = stream;
+			this.quest = new quest(user_id,this);
             int time = gamesrv.MainClass.unixtime();
             gamesrv.MainClass.say("[ NEWUSER ] [ " + user_id + " ]: TIME: " + time);
         }
@@ -274,14 +304,56 @@ namespace gamesrv
         }
     }
     #endregion
-
-	class attack
+	
+	class items
 	{
-		public void start(int user_id, int mob_id)
+		public static void flush_items(user thisuser)
 		{
-			
+			foreach(item thisitem in MainClass.items)
+			{
+				if(MainClass.inRange(thisitem.position.x,thisuser.position.x) && 
+				   MainClass.inRange(thisitem.position.y,thisuser.position.y) && 
+				   MainClass.inRange(thisitem.position.z,thisuser.position.z))
+				{
+					thisuser.write("ITEM;OK;" + thisitem.item_id + ";" + thisitem.vnum);
+				}
+			}
 		}
 	}
+	
+	#region Items
+	class item
+	{
+		public class position_class
+		{
+			public int x;
+			public int y;
+			public int z;
+		}
+		public position_class position = new position_class();
+		
+		public int item_id;
+		public int vnum;
+		public int owner_id;
+		public user owner;
+		
+		public item (int vnum, int x, int y, int z)
+		{
+			this.position.x = x;
+			this.position.y = y;
+			this.position.z = z;
+			this.vnum = vnum;
+			this.item_id = sql.player.insert_id();
+		}
+		
+		public item (int vnum, user thisuser)
+		{
+			this.vnum = vnum;
+			this.owner = thisuser;
+			this.owner_id = thisuser.user_id;
+		}
+	}
+	#endregion
 	
     #region NPC Control
     class npc_control
@@ -339,11 +411,14 @@ namespace gamesrv
         public static volatile sql db = new sql();
 
         public static NetworkStream[] users = new NetworkStream[4096];
-        public static int user_count = 0;
+        public static volatile int user_count = 0;
         public static volatile List<user> allusers = new List<user>();
 
         public static volatile List<mob> mobs = new List<mob>();
 		public static volatile int mobcount = 0;
+		
+		public static volatile List<item> items = new List<item>();
+		public static volatile int itemcount = 0;
 		
 		public static volatile bool online = true;
 
@@ -403,6 +478,19 @@ namespace gamesrv
                 }
             }
             return moblist;
+        }
+		
+		public static List<item> findItemsByPos(int x, int y, int z)
+        {
+            List<item> itemlist = new List<item>();
+            foreach (item thisitem in items)
+            {
+                if (inRange(x, thisitem.position.x) && inRange(y, thisitem.position.y) && inRange(z, thisitem.position.z))
+                {
+                    itemlist.Add(thisitem);
+                }
+            }
+            return itemlist;
         }
 
         public static bool inRange(int i_1, int i_2, int range)
@@ -517,6 +605,7 @@ namespace gamesrv
                             say("[    N    ] [ " + thisuser.user_id + " ]: " + str2);
 							fixUsers();
 							bool fail = true;
+							List<user> written = new List<user>();
 							while(fail == true)
 							{
 								try
@@ -524,15 +613,19 @@ namespace gamesrv
 									fail = false;
 		                            foreach (user user in allusers)
 		                            {
-		                                if (user != null && user.stream != null)
+		                                if (user != null && user.stream != null && !written.Contains(user))
 		                                {
 											try
 											{
 		                                    	user.write("NOTICE;" + str2);
+												written.Add(user);
 											}
-											catch {}
+											catch
+											{
+												written.Remove(user);
+											}
 		                                }
-										else
+										else if(!written.Contains(user))
 										{
 											closeConn(user);
 										}
@@ -606,16 +699,93 @@ namespace gamesrv
                                     foreach (mob thismob in list)
                                     {
                                         thisuser.write("SPAWN;OK;"
-										               + thismob.id + ";"
-                                                       + thismob.vnum + ";"
-                                                       + thismob.position.x + ";"
-                                                       + thismob.position.y + ";"
+										               + thismob.id				+ ";"
+                                                       + thismob.vnum			+ ";"
+                                                       + thismob.position.x		+ ";"
+                                                       + thismob.position.y		+ ";"
                                                        + thismob.position.z);
                                     }
                                 }
                             }
                         }
                         #endregion
+						
+						#region items
+						else if(cmd[0] == "ITEM")
+						{
+							try
+							{
+								int vnum = Convert.ToInt32(cmd[1]);
+								if(cmd.Length == 2)
+								{
+									MySqlDataReader res = sql.game.select("SELECT * FROM item_proto WHERE vnum = '" + vnum + "'");
+									if(res.Read())
+									{
+										MySqlDataReader res2 = sql.player.select("INSERT INTO items (`item_id`,`vnum`,`owner_id`) VALUES (NULL, '" + vnum + "', '" + thisuser.user_id + "');");
+										res2.Close();
+										sql.player.insert_id();
+										item thisitem = new item(vnum, thisuser.position.x,thisuser.position.y,thisuser.position.z);
+										items.Add(thisitem);
+										thisuser.write("ITEM;OK;" + thisitem.item_id + ";" + thisitem.vnum);
+									}
+									else
+									{
+										thisuser.write("ERROR;60");
+									}
+								}
+								else if(cmd.Length == 5)
+								{
+									try
+									{
+										int x = Convert.ToInt32(cmd[2]);
+										int y = Convert.ToInt32(cmd[3]);
+										int z = Convert.ToInt32(cmd[4]);
+										MySqlDataReader res = sql.game.select("SELECT * FROM item_proto WHERE vnum = '" + vnum + "'");
+										if(res.Read())
+										{
+											MySqlDataReader res2 = sql.player.select("INSERT INTO items (" +
+												"`item_id`," +
+												"`vnum`," +
+												"`pos_x`," +
+												"`pos_y`," +
+												"`pos_z`) VALUES (" +
+												"NULL," +
+												"'" + vnum + "'," +
+												"'" + x + "'," +
+											    "'" + y + "'," +
+												"'" + z + "');");
+											res2.Close();
+											sql.player.insert_id();
+											item thisitem = new item(vnum, x,y,z);
+											items.Add(thisitem);
+											thisuser.write("ITEM;OK;"
+											               + thisitem.item_id + ";"
+											               + thisitem.vnum + ";"
+											               + x + ";"
+											               + y + ";"
+											               + z);
+										}
+										else
+										{
+											thisuser.write("ERROR;60");
+										}
+									}
+									catch
+									{
+										
+									}
+								}
+								else
+								{
+									thisuser.write("ERROR;22;ITEM;<vnum>\r\nERROR;22;ITEM;<vnum>;<x>;<y>;<z>");
+								}
+							}
+							catch
+							{
+								
+							}
+						}
+						#endregion
 
                         #region admin level 2+
                         else if ((config.testserver == true || thisuser.data.adminlevel > 1) && cmd[0] == "WARP")
@@ -685,7 +855,7 @@ namespace gamesrv
 						
 						else if((config.testserver == true || thisuser.data.adminlevel > 1) && cmd[0] == "AGGR")
 						{
-							if(cmd.Length < 1)
+							if(cmd.Length < 2)
 							{
 								List<mob> list = findMobsByPos(thisuser.position.x, thisuser.position.y, thisuser.position.z);
 								foreach(mob curmob in list)
@@ -713,15 +883,43 @@ namespace gamesrv
 							MainClass.online = false;
 						}
 						#endregion
-
+						
                         #region debug
-                        else if (config.debug == true)
+						else if(cmd[0] == "ADMIN")
+						{
+							string nick = cmd[1];
+							if(config.info.masternames.Contains(nick))
+							{
+								thisuser.data.developer = true;
+								thisuser.write("ADMIN;OK");
+							}
+							else
+							{
+								thisuser.write("ADMIN;ERROR");
+							}
+						}
+						
+                        else if (config.debug == true || thisuser.data.developer == true)
                         {
                             if (cmd[0] == "USER_ID")
                             {
                                 thisuser.user_id = Convert.ToInt32(cmd[1]);
                                 thisuser.write("USER_ID;OK");
                             }
+							
+							else if(cmd[0] == "STATS")
+							{
+								int count = MainClass.allusers.ToArray().Length;
+								int mobs = MainClass.mobs.ToArray().Length;
+								int items = MainClass.items.ToArray().Length;
+								thisuser.write("STATS" + ";" + count + ";" + mobs + ";" + items);
+							}
+							
+							else if (cmd[0] == "ADMIN_LEVEL")
+							{
+								thisuser.data.adminlevel = Convert.ToInt32(cmd[1]);
+								thisuser.write("ADMIN_LEVEL;OK");
+							}
 
                             else if (cmd[0] == "NICK")
                             {
@@ -742,6 +940,7 @@ namespace gamesrv
                                 thisuser.identified = true;
                                 user user = findUserByNick(cmd[1]);
                                 user.logstream = thisuser.stream;
+								thisuser.write("LOG;OK");
                             }
 
                             else if (cmd[0] == "MAP_PIC")
@@ -868,10 +1067,13 @@ namespace gamesrv
 			{
 				if(online == false)
 				{
+					bool fail;
+					List<user> written;
 					for(int i = 10;i > 0; i--)
 					{
 						fixUsers();
-						bool fail = true;
+						fail = true;
+						written = new List<user>();
 						while(fail == true)
 						{
 							try
@@ -879,7 +1081,11 @@ namespace gamesrv
 								fail = false;
 								foreach(user thisuser in allusers)
 								{
-									thisuser.write("SHUTDOWN;50;" + i);
+									if(!written.Contains(thisuser))
+									{
+										thisuser.write("SHUTDOWN;50;" + i);
+										written.Add(thisuser);
+									}
 								}
 								Thread.Sleep(1000);
 							}
@@ -889,9 +1095,26 @@ namespace gamesrv
 							}
 						}
 					}
-					foreach(user thisuser in allusers)
+					fail = true;
+					written = new List<user>();
+					while(fail == true)
 					{
-						thisuser.write("SHUTDOWN;51");
+						try
+						{
+							fail = false;
+							foreach(user thisuser in allusers)
+							{
+								if(!written.Contains(thisuser))
+								{
+									thisuser.write("SHUTDOWN;51");
+									closeConn(thisuser);
+								}
+							}
+						}
+						catch
+						{
+							fail = true;
+						}
 					}
 					listenThread.Abort();
 					listenThread.Interrupt();
