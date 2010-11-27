@@ -162,7 +162,8 @@ namespace gamesrv
         }
 
         #endregion
-
+		
+		#region functions
         public static void log(string str)
         {
             byte[] bytes = encoder.GetBytes(str);
@@ -200,7 +201,7 @@ namespace gamesrv
                 gamesrv.game.proto.ship[Convert.ToInt32(reader["vnum"].ToString())] = reader.ToString();
             }
         }
-
+		#endregion
         public static void Main(string[] args)
         {
             version = config.info.version;
@@ -714,8 +715,15 @@ namespace gamesrv
                             {
                                 thisuser.identified = true;
                                 user user = findUserByNick(cmd[1]);
-                                user.logstream = thisuser.stream;
-								thisuser.write("LOG;OK");
+								if(user.data.nick == cmd[1])
+								{
+                                	user.logstream = thisuser.stream;
+									thisuser.write("LOG;OK");
+								}
+								else
+								{
+									thisuser.write("LOG;ERROR");
+								}
                             }
 
                             else if (cmd[0] == "MAP_PIC")
