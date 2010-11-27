@@ -40,20 +40,23 @@ namespace gamesrv
 		public int owner_id;
 		public user owner;
 		
-		public item (int vnum, int x, int y, int z)
+		public item (int item_id, int vnum, int x, int y, int z)
 		{
+			this.vnum = vnum;
+			this.item_id = item_id;
 			this.position.x = x;
 			this.position.y = y;
 			this.position.z = z;
-			this.vnum = vnum;
-			this.item_id = sql.player.insert_id();
+			gamesrv.MainClass.say("ADDED ITEM: " + this.item_id + "; " + this.vnum);
 		}
 		
-		public item (int vnum, user thisuser)
+		public item (int item_id, int vnum, user thisuser)
 		{
 			this.vnum = vnum;
+			this.item_id = item_id;
 			this.owner = thisuser;
 			this.owner_id = thisuser.user_id;
+			gamesrv.MainClass.say("ADDED ITEM: " + this.item_id + "; " + this.vnum);
 		}
 	}
 }

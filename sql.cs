@@ -12,17 +12,16 @@ namespace gamesrv
 {
     class sql
     {
-        public static MySqlDataReader reader;
         public class player
         {
             public static MySqlConnection c = new MySqlConnection(config.mysql.player.config);
+			public static MySqlDataReader reader;
             public static MySqlDataReader select(string query)
             {
-				try { sql.reader.Close(); }
-                catch { }
+				try{ sql.player.reader.Close(); } catch { }
                 MySqlCommand cmd = c.CreateCommand();
                 cmd.CommandText = query;
-                reader = cmd.ExecuteReader();
+               	sql.player.reader = cmd.ExecuteReader();
                 return reader;
             }
 			public static int insert_id()
@@ -35,13 +34,13 @@ namespace gamesrv
         public class game
         {
             public static MySqlConnection c = new MySqlConnection(config.mysql.game.config);
+			public static MySqlDataReader reader;
             public static MySqlDataReader select(string query)
             {
-				try { sql.reader.Close(); }
-                catch { }
+				try{ sql.game.reader.Close(); } catch { }
                 MySqlCommand cmd = c.CreateCommand();
                 cmd.CommandText = query;
-                reader = cmd.ExecuteReader();
+                sql.game.reader = cmd.ExecuteReader();
                 return reader;
             }
 			public static int insert_id()

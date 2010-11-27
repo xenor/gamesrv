@@ -1,0 +1,6 @@
+[ 27.11.2010 13:20:18 ]: Using Syslog: ./syslog/1290864019.log
+[ 27.11.2010 13:20:18 ]: Game Server v0.2.1 starting up...
+[ 27.11.2010 13:20:23 ]: PLAYER DB			READY
+[ 27.11.2010 13:20:28 ]: GAME DB			READY
+[ 27.11.2010 13:20:28 ]: MySql.Data.MySqlClient.MySqlDataReader
+[ 27.11.2010 13:20:28 ]: ADDED ITEM: 0; 1

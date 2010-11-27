@@ -1,7 +1,14 @@
 <?php
 $host = "localhost";
 $port = 3000;
-$name = "xenor";
+if(isset($argv[1]))
+{
+    $name = $argv[1];
+}
+else
+{
+    $name = "xenor";
+}
 date_default_timezone_set("Europe/Berlin");
 $sock = fsockopen($host,$port);
 if(!$sock) die();
@@ -15,21 +22,24 @@ do
     {
         $str = fgets($sock);
         $cmd = explode(';',$str);
-        if(trim($cmd[0]) == "PING") fputs($sock,"PONG");
-        if(trim($cmd[0]) == "LOG")
+        if(trim($str) != "")
         {
-            if(trim($cmd[1]) == "OK")
+            if(trim($cmd[0]) == "PING") fputs($sock,"PONG");
+            if(trim($cmd[0]) == "LOG")
             {
-                $ready = true;
+                if(trim($cmd[1]) == "OK")
+                {
+                    $ready = true;
+                }
+                else
+                {
+                    $online = false;
+                }
             }
-            else
+            if($ready == true)
             {
-                $online = false;
+                echo date("r",time()).": ".trim($str)."\r\n";
             }
-        }
-        if($ready == true)
-        {
-            echo date("r",time()).": ".trim($str)."\r\n";
         }
     }
 } while($online == true);

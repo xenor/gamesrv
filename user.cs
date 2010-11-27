@@ -83,6 +83,7 @@ namespace gamesrv
                     this.data.nick = reader["nick"].ToString();
                     this.data.adminlevel = Convert.ToInt32(reader["adminlevel"].ToString());
                     this.write("LOGIN;OK");
+					items.flush_items(this);
                 }
                 else
                 {

@@ -1,0 +1,11 @@
+[ 27.11.2010 12:05:52 ]: Using Syslog: ./syslog/1290859553.log
+[ 27.11.2010 12:05:52 ]: Game Server v0.2.1 starting up...
+[ 27.11.2010 12:05:59 ]: PLAYER DB			READY
+[ 27.11.2010 12:06:04 ]: GAME DB			READY
+[ 27.11.2010 12:06:04 ]: LISTEN THREAD			READY
+[ 27.11.2010 12:06:04 ]: NPC CONTROL			READY
+[ 27.11.2010 12:06:04 ]: GAME SERVER READY		READY
+[ 27.11.2010 12:06:07 ]: [ NEWUSER ] [ 0 ]: TIME: 1290859567
+[ 27.11.2010 12:06:07 ]: [   >>>   ] [ 0  ]: WELCOME
+[ 27.11.2010 12:06:11 ]: [   <<<   ] [ 0  (0) ]: login;xenor;0;lalaftw#!
+[ 27.11.2010 12:06:11 ]: [   >>>   ] [ 1 xenor (7) ]: LOGIN;OK

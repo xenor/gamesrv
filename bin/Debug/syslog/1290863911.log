@@ -1,0 +1,14 @@
+[ 27.11.2010 13:18:30 ]: Using Syslog: ./syslog/1290863911.log
+[ 27.11.2010 13:18:30 ]: Game Server v0.2.1 starting up...
+[ 27.11.2010 13:18:35 ]: PLAYER DB			READY
+[ 27.11.2010 13:18:40 ]: GAME DB			READY
+[ 27.11.2010 13:18:40 ]: MySql.Data.MySqlClient.MySqlDataReader
+[ 27.11.2010 13:18:40 ]: MySql.Data.MySqlClient.MySqlDataReader
+[ 27.11.2010 13:18:40 ]: MySql.Data.MySqlClient.MySqlDataReader
+[ 27.11.2010 13:18:40 ]: MySql.Data.MySqlClient.MySqlDataReader
+[ 27.11.2010 13:18:40 ]: MySql.Data.MySqlClient.MySqlDataReader
+[ 27.11.2010 13:18:40 ]: MySql.Data.MySqlClient.MySqlDataReader
+[ 27.11.2010 13:18:40 ]: MySql.Data.MySqlClient.MySqlDataReader
+[ 27.11.2010 13:18:40 ]: LISTEN THREAD			READY
+[ 27.11.2010 13:18:40 ]: NPC CONTROL			READY
+[ 27.11.2010 13:18:40 ]: GAME SERVER READY		READY

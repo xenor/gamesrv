@@ -90,6 +90,18 @@ namespace gamesrv
             }
             return new user(0, null);
         }
+		
+		public static user findUserByID(int user_id)
+        {
+            foreach (user cur_user in allusers)
+            {
+                if (cur_user != null && cur_user.user_id == user_id)
+                {
+                    return cur_user;
+                }
+            }
+            return new user(0, null);
+        }
 
         public static List<mob> findMobsByPos(int x, int y, int z)
         {
@@ -161,9 +173,6 @@ namespace gamesrv
             }
         }
 
-        #endregion
-		
-		#region functions
         public static void log(string str)
         {
             byte[] bytes = encoder.GetBytes(str);
@@ -201,7 +210,25 @@ namespace gamesrv
                 gamesrv.game.proto.ship[Convert.ToInt32(reader["vnum"].ToString())] = reader.ToString();
             }
         }
+		
+		public static void cacheItems()
+		{
+			say("CACHING ITEMS...");
+			MySqlDataReader res = sql.player.select("SELECT * FROM items WHERE owner_id = 0");
+			while(res.Read())
+			{
+				int item_id = Convert.ToInt32(res["item_id"].ToString());
+				int vnum = Convert.ToInt32(res["vnum"].ToString());
+				int x = Convert.ToInt32(res["pos_x"].ToString());
+				int y = Convert.ToInt32(res["pos_y"].ToString());
+				int z = Convert.ToInt32(res["pos_z"].ToString());
+				item thisitem = new item(item_id,vnum,x,y,z);
+				items.Add(thisitem);
+			}
+		}
+		
 		#endregion
+		
         public static void Main(string[] args)
         {
             version = config.info.version;
@@ -230,6 +257,7 @@ namespace gamesrv
                 return;
             }
             say("GAME DB\t\t\tREADY");
+			gamesrv.MainClass.cacheItems();
             tcpListener = new TcpListener(IPAddress.Any, 3000);
             listenThread = new Thread(new ThreadStart(ListenForClients));
             listenThread.Start();
@@ -499,8 +527,8 @@ namespace gamesrv
 									{
 										MySqlDataReader res2 = sql.player.select("INSERT INTO items (`item_id`,`vnum`,`owner_id`) VALUES (NULL, '" + vnum + "', '" + thisuser.user_id + "');");
 										res2.Close();
-										sql.player.insert_id();
-										item thisitem = new item(vnum, thisuser.position.x,thisuser.position.y,thisuser.position.z);
+										int item_id = sql.player.insert_id();
+										item thisitem = new item(item_id, vnum, thisuser.position.x,thisuser.position.y,thisuser.position.z);
 										items.Add(thisitem);
 										thisuser.write("ITEM;OK;" + thisitem.item_id + ";" + thisitem.vnum);
 									}
@@ -531,8 +559,8 @@ namespace gamesrv
 											    "'" + y + "'," +
 												"'" + z + "');");
 											res2.Close();
-											sql.player.insert_id();
-											item thisitem = new item(vnum, x,y,z);
+											int item_id = sql.player.insert_id();
+											item thisitem = new item(item_id, vnum, x,y,z);
 											items.Add(thisitem);
 											thisuser.write("ITEM;OK;"
 											               + thisitem.item_id + ";"
@@ -657,6 +685,14 @@ namespace gamesrv
 						else if((config.testserver == true || thisuser.data.adminlevel > 2) && cmd[0] == "SHUTDOWN")
 						{
 							MainClass.online = false;
+						}
+						
+						else if ((config.testserver == true || thisuser.data.adminlevel > 2) && cmd[0] == "RELOAD")
+						{
+							if(cmd[1] == "ITEMS")
+							{
+								cacheItems();
+							}
 						}
 						#endregion
 						
