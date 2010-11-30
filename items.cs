@@ -8,6 +8,7 @@ using System.Data;
 using System.Collections.Generic;
 using MySql.Data.MySqlClient;
 using LuaInterface;
+
 namespace gamesrv
 {
 	class items
@@ -16,11 +17,18 @@ namespace gamesrv
 		{
 			foreach(item thisitem in MainClass.items)
 			{
-				if(MainClass.inRange(thisitem.position.x,thisuser.position.x) && 
+				if(thisitem.owner == thisuser)
+				{
+					thisuser.write("ITEM;OK;"+ thisitem.item_id + ";"+ thisitem.vnum);
+				}
+				else if(MainClass.inRange(thisitem.position.x,thisuser.position.x) && 
 				   MainClass.inRange(thisitem.position.y,thisuser.position.y) && 
 				   MainClass.inRange(thisitem.position.z,thisuser.position.z))
 				{
-					thisuser.write("ITEM;OK;" + thisitem.item_id + ";" + thisitem.vnum);
+					int x = thisitem.position.x;
+					int y = thisitem.position.y;
+					int z = thisitem.position.z;
+					thisuser.write("ITEM;OK;"+ thisitem.item_id + ";"+ thisitem.vnum + ";"+ x + ";"+ y + ";"+ z);
 				}
 			}
 		}

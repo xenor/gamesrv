@@ -83,6 +83,16 @@ namespace gamesrv
                     this.data.nick = reader["nick"].ToString();
                     this.data.adminlevel = Convert.ToInt32(reader["adminlevel"].ToString());
                     this.write("LOGIN;OK");
+					string q = "SELECT * FROM items WHERE owner_id = '"+this.user_id+"'";
+					MySqlDataReader res = gamesrv.sql.player.select(q);
+					while(res.Read())
+					{
+						int item_id = Convert.ToInt32(res["item_id"]);
+						int vnum = Convert.ToInt32(res["vnum"]);
+//						int owner_id = Convert.ToInt32(res["item_id"]);
+						item thisitem = new item(item_id,vnum,this);
+						gamesrv.MainClass.items.Add(thisitem);	
+					}
 					items.flush_items(this);
                 }
                 else

@@ -26,26 +26,32 @@ namespace gamesrv
                         int user_x = thisuser.position.x;
                         int user_y = thisuser.position.y;
                         int user_z = thisuser.position.z;
-                        if (MainClass.inRange(mob_x, user_x,thismob.attackrange) && MainClass.inRange(mob_y, user_y, thismob.attackrange) && MainClass.inRange(mob_z, user_z, thismob.attackrange))
-                        {
-                            //thisuser.write("MOB " + thismob.vnum + " IN RANGE.");
-							if(thismob.hate.Contains(thisuser))
-							{
-								if(thismob.nextshot < MainClass.unixtime())
+						if(thismob.hate.Contains(thisuser))
+						{
+	                        if (MainClass.inRange(mob_x, user_x, thismob.attackrange) &&
+							    MainClass.inRange(mob_y, user_y, thismob.attackrange) &&
+							    MainClass.inRange(mob_z, user_z, thismob.attackrange))
+	                        {
+								if(thismob.nextshot <= MainClass.unixtime())
 								{
 									thismob.nextshot = MainClass.unixtime() + thismob.firerate;
 									thisuser.write("ATTACK;"
 									               + thismob.id + ";"
 									               + thismob.vnum + ";"
 									               + thisuser.user_id + ";"
-									               + thismob.firespeed
-									               );
+									               + thismob.firespeed);
 								}
+	                        }
+							else if(MainClass.inRange(mob_x,user_x,thismob.fightrange) &&
+							        MainClass.inRange(mob_y,user_y,thismob.fightrange) &&
+							        MainClass.inRange(mob_z,user_z,thismob.fightrange))
+							{
+								thismob.move(user_x,user_y,user_z);
 							}
-                        }
+						}
                     }
                 }
-                Thread.Sleep(5);
+                Thread.Sleep(20);
             }
         }
     }

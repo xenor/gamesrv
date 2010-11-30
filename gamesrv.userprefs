@@ -1,14 +1,19 @@
 ﻿<Properties>
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug|x86" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="Main.cs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="mob.cs">
     <Files>
-      <File FileName="Main.cs" Line="911" Column="18" />
+      <File FileName="Main.cs" Line="654" Column="60" />
+      <File FileName="user.cs" Line="94" Column="25" />
+      <File FileName="items.cs" Line="28" Column="34" />
+      <File FileName="npc_control.cs" Line="41" Column="12" />
+      <File FileName="mob.cs" Line="38" Column="10" />
     </Files>
     <Pads>
       <Pad Id="ProjectPad">
         <State expanded="True">
-          <Node name="gamesrv" expanded="True" selected="True">
+          <Node name="gamesrv" expanded="True">
             <Node name="References" expanded="True" />
+            <Node name="mob.cs" selected="True" />
           </Node>
         </State>
       </Pad>

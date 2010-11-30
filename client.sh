@@ -2,14 +2,7 @@
 <?php
 $host = "localhost";
 $port = 3000;
-if(isset($argv[1]))
-{
-	$name = $argv[1];
-}
-else
-{
-	$name = "xenor";
-}
+$name = "xenor";
 $items = array(
 	1 => (object) array(
 		"name" => "Raumkraut",

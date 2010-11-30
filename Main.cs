@@ -10,17 +10,7 @@ using MySql.Data.MySqlClient;
 using LuaInterface;
 
 namespace gamesrv
-{
-    #region game
-    public class game
-    {
-        public class proto
-        {
-            public static List<string> ship = new List<string>();
-        }
-    }
-    #endregion
-    
+{   
     class MainClass
     {
         #region sinnlos
@@ -128,6 +118,19 @@ namespace gamesrv
             }
             return itemlist;
         }
+		
+		public static List<user> findUsersByPos(int x, int y, int z)
+        {
+            List<user> userlist = new List<user>();
+            foreach (user thisuser in allusers)
+            {
+                if (inRange(x, thisuser.position.x) && inRange(y, thisuser.position.y) && inRange(z, thisuser.position.z))
+                {
+                    userlist.Add(thisuser);
+                }
+            }
+            return userlist;
+        }
 
         public static bool inRange(int i_1, int i_2, int range)
         {
@@ -204,11 +207,13 @@ namespace gamesrv
 
         public static void cacheGameDB()
         {
+			/*
             MySqlDataReader reader = gamesrv.sql.game.select("SELECT * FROM ship_proto");
             while (reader.Read())
             {
                 gamesrv.game.proto.ship[Convert.ToInt32(reader["vnum"].ToString())] = reader.ToString();
             }
+            */
         }
 		
 		public static void cacheItems()
@@ -510,6 +515,10 @@ namespace gamesrv
                                                        + thismob.position.z);
                                     }
                                 }
+								if(cmd[1] == "ITEMS")
+								{
+									gamesrv.items.flush_items(thisuser);
+								}
                             }
                         }
                         #endregion
@@ -640,10 +649,10 @@ namespace gamesrv
 	                                    int y = rand.Next(thisuser.position.y - 10, thisuser.position.y + 10);
 	                                    int z = rand.Next(thisuser.position.z - 10, thisuser.position.z + 10);
 	                                    mob thismob = new mob(Convert.ToInt32(res["vnum"]),res);
+										int id = thismob.id;
+										thisuser.write("SPAWN;OK;" + id + ";" + res["vnum"] + ";" + x + ";" + y + ";" + z);
 	                                    thismob.warp(x, y, z);
 	                                    gamesrv.MainClass.mobs.Add(thismob);
-										int id = thismob.id;
-	                                    thisuser.write("SPAWN;OK;" + id + ";" + res["vnum"] + ";" + x + ";" + y + ";" + z);
 									}
                                 }
                                 else
